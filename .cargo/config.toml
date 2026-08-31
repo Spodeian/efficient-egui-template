@@ -1,0 +1,7 @@
+# Cargo Configuration for Serverless & Desktop Template
+
+[target.wasm32-unknown-unknown]
+rustflags = [
+    "-C", "target-feature=+bulk-memory,+mutable-globals,+nontrapping-fptoint,+sign-ext",
+    "-C", "link-arg=-zstack-size=2097152",
+]
