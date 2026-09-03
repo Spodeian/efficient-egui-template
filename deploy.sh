@@ -26,16 +26,27 @@ elif [ -f "$HOME/.cargo/env" ]; then
     . "$HOME/.cargo/env"
 fi
 
-# 2. Rust Toolchain & Target Verification
+# 2. Rust Toolchain & Target Verification (Resolves channel from rust-toolchain.toml)
+RUST_TOOLCHAIN="stable"
+if [ -f "rust-toolchain.toml" ]; then
+    DETECTED_CHANNEL=$(grep -E '^\s*channel\s*=' rust-toolchain.toml | head -n 1 | cut -d '"' -f 2 | tr -d ' ' || true)
+    if [ -n "$DETECTED_CHANNEL" ]; then
+        RUST_TOOLCHAIN="$DETECTED_CHANNEL"
+        echo "Detected Rust toolchain from rust-toolchain.toml: $RUST_TOOLCHAIN"
+    fi
+fi
+
 if ! command -v rustup &> /dev/null && [ ! -f "$CARGO_HOME/bin/rustup" ]; then
-    echo "Rust compiler not detected. Installing Rust stable toolchain..."
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --target wasm32-unknown-unknown
+    echo "Rust compiler not detected. Installing Rust ($RUST_TOOLCHAIN) toolchain..."
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain "$RUST_TOOLCHAIN" --target wasm32-unknown-unknown
     if [ -f "$CARGO_HOME/env" ]; then
         . "$CARGO_HOME/env"
     fi
 else
     echo "Rust toolchain detected: $(rustc --version || echo 'Active')"
     if command -v rustup &> /dev/null; then
+        rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --target wasm32-unknown-unknown 2>/dev/null || true
+        rustup default "$RUST_TOOLCHAIN" 2>/dev/null || true
         rustup target add wasm32-unknown-unknown 2>/dev/null || true
     elif [ -f "$CARGO_HOME/bin/rustup" ]; then
         "$CARGO_HOME/bin/rustup" target add wasm32-unknown-unknown 2>/dev/null || true
@@ -84,16 +95,50 @@ fi
 echo "Purging previous build distribution caches..."
 rm -rf crates/web/dist dist
 
+export RUSTFLAGS="-C target-feature=+bulk-memory,+mutable-globals,+nontrapping-fptoint,+sign-ext,+reference-types,+multivalue -C link-arg=-zstack-size=2097152 -C target-cpu=generic ${RUSTFLAGS:-}"
+
 echo "Compiling and bundling web application for release..."
 "$TRUNK_BIN" clean
 "$TRUNK_BIN" build --release --public-url "/"
 
-# 6. Production Asset Minification (HTML, CSS, JS)
 DIST_DIR="crates/web/dist"
 if [ ! -d "$DIST_DIR" ] && [ -d "dist" ]; then
     DIST_DIR="dist"
 fi
 
+# Run wasm-opt pass on generated wasm artifact with bulk memory, reference-types, and performance optimizations
+WASM_OPT_FLAGS=(
+    "-Oz"
+    "--enable-bulk-memory"
+    "--enable-bulk-memory-opt"
+    "--enable-mutable-globals"
+    "--enable-sign-ext"
+    "--enable-nontrapping-float-to-int"
+    "--enable-reference-types"
+    "--enable-multivalue"
+)
+
+if [ -x "$WASM_OPT_BIN" ] || command -v wasm-opt &> /dev/null; then
+    for wasm_file in "$DIST_DIR"/*.wasm; do
+        if [ -f "$wasm_file" ]; then
+            echo "Optimizing WASM with wasm-opt (reference-types, bulk-memory, fast math): $wasm_file"
+            "$WASM_OPT_BIN" "${WASM_OPT_FLAGS[@]}" "$wasm_file" -o "$wasm_file" || "$WASM_OPT_BIN" -Oz "$wasm_file" -o "$wasm_file" || true
+        fi
+    done
+fi
+
+# 6. Deployment Cache Invalidation & Version Stamping
+BUILD_ID=$(git rev-parse --short HEAD 2>/dev/null || date +%s)
+echo "=== Stamping Deployment Cache Invalidation with BUILD_ID: $BUILD_ID ==="
+if [ -f "$DIST_DIR/sw.js" ]; then
+    sed -i "s/CACHE_NAME = '.*'/CACHE_NAME = 'serverless-desktop-template-cache-${BUILD_ID}'/g" "$DIST_DIR/sw.js" 2>/dev/null || true
+    sed -i "s/?v=[a-zA-Z0-9_-]*/?v=${BUILD_ID}/g" "$DIST_DIR/sw.js" 2>/dev/null || true
+fi
+if [ -f "$DIST_DIR/index.html" ]; then
+    sed -i "s/?v=[a-zA-Z0-9_-]*/?v=${BUILD_ID}/g" "$DIST_DIR/index.html" 2>/dev/null || true
+fi
+
+# 7. Production Asset Minification (HTML, CSS, JS)
 if [ -d "$DIST_DIR" ]; then
     echo "=== Running Production Asset Minification (HTML, CSS, JS) for '$DIST_DIR' ==="
 
@@ -180,7 +225,7 @@ if os.path.exists(html_path):
 ' "$DIST_DIR"
     fi
 
-    # 7. High-Ratio Asset Pre-Compression (Brotli Level 11 + Gzip Level 9)
+    # 8. High-Ratio Asset Pre-Compression (Brotli Level 11 + Gzip Level 9)
     echo "=== Generating Pre-Compressed Brotli (.br) & Gzip (.gz) Assets ==="
     if command -v python3 &> /dev/null; then
         python3 -c '
@@ -189,11 +234,13 @@ import os, sys, gzip, glob
 dist_dir = sys.argv[1]
 extensions = ("*.wasm", "*.js", "*.css", "*.html", "*.json", "*.svg")
 target_files = []
-for ext in extensions:
-    target_files.extend(glob.glob(os.path.join(dist_dir, ext)))
+for root, _, _ in os.walk(dist_dir):
+    for ext in extensions:
+        target_files.extend(glob.glob(os.path.join(root, ext)))
 
 # 1. Gzip Level 9
 for fpath in target_files:
+    if fpath.endswith(".gz") or fpath.endswith(".br"): continue
     gz_path = fpath + ".gz"
     try:
         with open(fpath, "rb") as f_in, gzip.open(gz_path, "wb", compresslevel=9) as f_out:
@@ -205,6 +252,7 @@ for fpath in target_files:
 try:
     import brotli
     for fpath in target_files:
+        if fpath.endswith(".gz") or fpath.endswith(".br"): continue
         br_path = fpath + ".br"
         with open(fpath, "rb") as f_in:
             data = f_in.read()
@@ -216,21 +264,18 @@ except ImportError:
     print("  Pre-compressed assets with Gzip (level 9). Brotli CLI check...")
 ' "$DIST_DIR" || true
         if command -v brotli &> /dev/null; then
-            for fpath in "$DIST_DIR"/*.{wasm,js,css,html,json,svg}; do
-                if [ -f "$fpath" ] && [ ! -f "${fpath}.br" ]; then
-                    brotli -f -k -q 11 "$fpath" 2>/dev/null || true
-                fi
-            done
+            find "$DIST_DIR" -type f \( -name "*.wasm" -o -name "*.js" -o -name "*.css" -o -name "*.html" -o -name "*.json" -o -name "*.svg" \) -exec brotli -f -k -q 11 {} + 2>/dev/null || true
         fi
     fi
 
-    # 8. Ensure Cloudflare configuration files are guaranteed present in output distribution
+    # 9. Ensure Cloudflare configuration files are guaranteed present in output distribution
     cp -f crates/web/_headers "$DIST_DIR/_headers" 2>/dev/null || true
+    cp -f crates/web/_redirects "$DIST_DIR/_redirects" 2>/dev/null || true
 fi
 
 echo "=== Build Completed Successfully! Static assets are ready in: '$DIST_DIR' ==="
 
-# 9. Deployment Context Router
+# 10. Deployment Context Router
 if [ "${CLOUDFLARE_WORKER_DEPLOY:-false}" = "true" ]; then
     echo "Wrangler Worker deployment context detected."
     if ! command -v wrangler &> /dev/null; then
