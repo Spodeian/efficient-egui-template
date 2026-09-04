@@ -92,6 +92,7 @@ dependencies = [
  "egui",
  "js-sys",
  "miniz_oxide",
+ "ron",
  "serde",
  "serde_json",
  "shared",

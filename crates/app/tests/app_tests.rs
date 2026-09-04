@@ -60,3 +60,58 @@ fn test_template_app_export_dialog() {
     assert!(app.show_export_dialog.is_some());
     assert!(app.export_text_buffer.contains("Explore Cross-Platform State Persistence"));
 }
+
+#[test]
+fn test_template_app_load_multi_tier_json_and_ron() {
+    use app::storage_manager::{deserialize_app_state, load_state_multi_tier, DEDICATED_STORAGE_KEY};
+
+    let mut original_state = AppState::default();
+    original_state.collection.add("Task A", "Description A", Priority::High);
+
+    // 1. JSON roundtrip
+    let json_str = serde_json::to_string(&original_state).unwrap();
+    let from_json = deserialize_app_state(&json_str).expect("JSON should deserialize");
+    assert_eq!(from_json.collection.total_count(), 4);
+
+    // 2. RON roundtrip
+    let ron_str = ron::to_string(&original_state).unwrap();
+    let from_ron = deserialize_app_state(&ron_str).expect("RON should deserialize");
+    assert_eq!(from_ron.collection.total_count(), 4);
+
+    // 3. Load from dedicated key in storage (JSON)
+    let mut storage_dedicated = MockStorage::default();
+    storage_dedicated.set_string(DEDICATED_STORAGE_KEY, json_str.clone());
+    let loaded_dedicated = load_state_multi_tier(Some(&storage_dedicated)).expect("Should load from dedicated key");
+    assert_eq!(loaded_dedicated.collection.total_count(), 4);
+
+    // 4. Load from legacy app key in storage (JSON)
+    let mut storage_json_app = MockStorage::default();
+    storage_json_app.set_string(eframe::APP_KEY, json_str);
+    let loaded_json = load_state_multi_tier(Some(&storage_json_app)).expect("Should load from app key JSON");
+    assert_eq!(loaded_json.collection.total_count(), 4);
+
+    // 5. Load from legacy app key in storage (RON)
+    let mut storage_ron_app = MockStorage::default();
+    storage_ron_app.set_string(eframe::APP_KEY, ron_str);
+    let loaded_ron = load_state_multi_tier(Some(&storage_ron_app)).expect("Should load from app key RON");
+    assert_eq!(loaded_ron.collection.total_count(), 4);
+}
+
+#[test]
+fn test_template_app_save_populates_both_keys() {
+    use app::storage_manager::{load_state_multi_tier, DEDICATED_STORAGE_KEY};
+
+    let mut storage = MockStorage::default();
+    let mut app = TemplateApp::default();
+    app.state.collection.add("New Saved Item", "Active Persistence Test", Priority::Medium);
+
+    app.save(&mut storage);
+
+    // Both eframe::APP_KEY (RON) and DEDICATED_STORAGE_KEY (JSON) should be populated
+    assert!(storage.get_string(eframe::APP_KEY).is_some());
+    assert!(storage.get_string(DEDICATED_STORAGE_KEY).is_some());
+
+    let loaded = load_state_multi_tier(Some(&storage)).expect("Should restore state successfully");
+    assert_eq!(loaded.collection.total_count(), 4);
+}
+

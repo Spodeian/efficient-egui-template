@@ -110,24 +110,34 @@ impl TemplateApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         info!("Initializing Serverless & Desktop Template App...");
 
-        let state = if let Some(storage) = cc.storage {
-            match eframe::get_value::<AppState>(storage, eframe::APP_KEY) {
-                Some(s) => {
-                    info!("Loaded application state from persistent storage.");
-                    s
-                }
-                None => {
-                    warn!("No saved state found in storage, initializing fresh defaults.");
-                    AppState::default()
-                }
-            }
-        } else {
+        let state = load_state_multi_tier(cc.storage).unwrap_or_else(|| {
+            warn!("No saved state found in storage, initializing fresh defaults.");
             AppState::default()
-        };
+        });
 
         Self {
             state,
             ..Default::default()
+        }
+    }
+
+    /// Immediately persist current state to multi-tier storage (active persistence)
+    pub fn persist_state(&mut self) {
+        if let Ok(json_str) = serde_json::to_string(&self.state) {
+            match save_state_multi_tier(DEDICATED_STORAGE_KEY, &json_str) {
+                Ok(backend) => {
+                    self.storage_diag.backend = backend;
+                    if backend == StorageBackend::IndexedDb {
+                        self.storage_diag.quota_exceeded = true;
+                        self.storage_diag.idb_active = true;
+                    } else {
+                        self.storage_diag.quota_exceeded = false;
+                    }
+                }
+                Err(_) => {
+                    self.storage_diag.quota_exceeded = true;
+                }
+            }
         }
     }
 
@@ -212,6 +222,7 @@ impl TemplateApp {
                             ThemeMode::Light => ThemeMode::Dark,
                             ThemeMode::Dark => ThemeMode::Light,
                         };
+                        self.persist_state();
                     }
 
                     let help_text = if constraints.is_mobile { "Help" } else { "Help" };
@@ -366,6 +377,7 @@ impl TemplateApp {
                     );
                     self.new_item_title.clear();
                     self.new_item_description.clear();
+                    self.persist_state();
                 }
             });
     }
@@ -377,6 +389,7 @@ impl TemplateApp {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.button("Clear Completed").on_hover_text("Remove all finished items").clicked() {
                     self.state.collection.clear_completed();
+                    self.persist_state();
                 }
 
                 egui::ComboBox::from_id_salt("filter_priority_dropdown")
@@ -488,11 +501,17 @@ impl TemplateApp {
                 }
             });
 
+        let mut collection_changed = false;
         for id in item_ids_to_toggle {
             self.state.collection.toggle(id);
+            collection_changed = true;
         }
         for id in item_ids_to_remove {
             self.state.collection.remove(id);
+            collection_changed = true;
+        }
+        if collection_changed {
+            self.persist_state();
         }
     }
 
@@ -506,7 +525,7 @@ impl TemplateApp {
                 .open(&mut open)
                 .resizable(true)
                 .collapsible(true)
-                .default_size(egui::vec2(520.0, 420.0))
+                .default_size(egui::vec2(win_w, win_h))
                 .min_width(320.0)
                 .min_height(380.0)
                 .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
@@ -571,6 +590,7 @@ impl TemplateApp {
                         if ui.button("Yes, Reset").clicked() {
                             self.state.collection = ItemCollection::default();
                             self.show_reset_dialog = false;
+                            self.persist_state();
                         }
                         if ui.button("Cancel").clicked() {
                             self.show_reset_dialog = false;
@@ -668,6 +688,7 @@ impl TemplateApp {
                                         let count = col.total_count();
                                         self.state.collection = col;
                                         self.import_result_message = Some(Ok(format!("Successfully imported {} items from JSON!", count)));
+                                        self.persist_state();
                                     }
                                     Err(e) => {
                                         self.import_result_message = Some(Err(e.to_string()));
@@ -679,6 +700,7 @@ impl TemplateApp {
                                         let count = col.total_count();
                                         self.state.collection = col;
                                         self.import_result_message = Some(Ok(format!("Successfully imported {} items from compressed BSON!", count)));
+                                        self.persist_state();
                                     }
                                     Err(e) => {
                                         self.import_result_message = Some(Err(format!("BSON import failed: {}", e)));
@@ -690,6 +712,7 @@ impl TemplateApp {
                                         let count = col.total_count();
                                         self.state.collection = col;
                                         self.import_result_message = Some(Ok(format!("Successfully imported {} items from CSV!", count)));
+                                        self.persist_state();
                                     }
                                     Err(e) => {
                                         self.import_result_message = Some(Err(e.to_string()));
@@ -915,19 +938,17 @@ impl TemplateApp {
 
 impl eframe::App for TemplateApp {
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        // 1. Write standard RON state to eframe::APP_KEY
         eframe::set_value(storage, eframe::APP_KEY, &self.state);
 
+        // 2. Write JSON to dedicated key in storage
         if let Ok(json_str) = serde_json::to_string(&self.state) {
-            if let Ok(backend) = save_state_multi_tier(eframe::APP_KEY, &json_str) {
-                self.storage_diag.backend = backend;
-                if backend == StorageBackend::IndexedDb {
-                    self.storage_diag.quota_exceeded = true;
-                    self.storage_diag.idb_active = true;
-                }
-            } else {
-                self.storage_diag.quota_exceeded = true;
-            }
+            storage.set_string(DEDICATED_STORAGE_KEY, json_str);
         }
+        storage.flush();
+
+        // 3. Persist to multi-tier engine
+        self.persist_state();
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {

@@ -35,6 +35,7 @@ console_error_panic_hook = "0.1.7"
 bson = "2"
 miniz_oxide = "0.8"
 base64 = "0.22"
+ron = "0.12"
 
 [profile.release]
 opt-level = "z"
