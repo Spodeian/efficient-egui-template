@@ -1,4 +1,7 @@
 //! Native desktop application runner for the Serverless & Desktop Template.
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 
 use app::TemplateApp;
 use eframe::egui;
@@ -30,3 +33,4 @@ fn main() -> eframe::Result<()> {
         Box::new(|cc| Ok(Box::new(TemplateApp::new(cc)))),
     )
 }
+
