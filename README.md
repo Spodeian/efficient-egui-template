@@ -1,6 +1,13 @@
-# Serverless & Desktop Template
+# Serverless & Desktop egui Template
 
-A production-ready, modular Rust & `egui` template designed for high-performance **Serverless Web (WASM / Cloudflare Pages / PWA)** and **Native Desktop (Windows, macOS, Linux)** applications.
+[![CI & Test Suite](https://github.com/Spodeian/efficient-egui-template/actions/workflows/ci.yml/badge.svg)](https://github.com/Spodeian/efficient-egui-template/actions/workflows/ci.yml)
+[![GitHub Pages](https://github.com/Spodeian/efficient-egui-template/actions/workflows/static.yml/badge.svg)](https://github.com/Spodeian/efficient-egui-template/actions/workflows/static.yml)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
+[![Rust: 2024 Edition](https://img.shields.io/badge/Rust-2024%20Edition-orange.svg)](https://www.rust-lang.org)
+[![egui: 0.36](https://img.shields.io/badge/egui-0.36-blueviolet.svg)](https://github.com/emilk/egui)
+[![Cloudflare Pages: v3](https://img.shields.io/badge/Cloudflare%20Pages-Build%20System%20v3-F38020.svg)](https://pages.cloudflare.com)
+
+A production-ready, modular Rust & [`egui 0.36`](https://github.com/emilk/egui) / [`eframe 0.36`](https://docs.rs/eframe) template designed for high-performance **Serverless Web (WASM / Cloudflare Pages / PWA via Trunk)** and **Native Desktop (Windows, macOS, Linux via Winit)** applications.
 
 Based directly on the proven architecture, production fixes, and deployment pipelines of [Revisited IPIP-NEO](https://github.com/Spodeian/Revisited-IPIP-NEO).
 
@@ -8,72 +15,97 @@ Based directly on the proven architecture, production fixes, and deployment pipe
 
 ## 🏛️ Architectural Structure
 
-The workspace is organized into four decoupled crates:
+The workspace is organized into four decoupled, single-responsibility crates:
 
-- **[`crates/shared`](crates/shared)**: Core domain models, business logic, configuration (`ThemeMode`, `AppConfig`, `AppState`), and interchange serialization (JSON and CSV import/export).
-- **[`crates/app`](crates/app)**: UI view controller and layout layer powered by `egui` & `eframe`. Contains responsive design helpers (`ScreenConstraints`), the light/dark theme engine, modal dialogs, and persistent state management via `eframe::Storage`.
+```mermaid
+graph TD
+    Shared["crates/shared<br/>(Domain Models, JSON/CSV/BSON Serialization, State)"]
+    App["crates/app<br/>(egui UI Components, Responsive Layout, Modals, Theme, Storage)"]
+    Desktop["crates/desktop<br/>(Native Desktop Executable via eframe / Winit)"]
+    Web["crates/web<br/>(Static WebAssembly Entrypoint, PWA Service Worker, Trunk Assets)"]
+
+    App --> Shared
+    Desktop --> App
+    Desktop --> Shared
+    Web --> App
+    Web --> Shared
+```
+
+- **[`crates/shared`](crates/shared)**: Core domain models, business logic, configuration (`ThemeMode`, `AppConfig`, `AppState`), and interchange serialization (JSON, CSV, and compressed BSON import/export).
+- **[`crates/app`](crates/app)**: Modular UI view controller and layout layer powered by `egui` & `eframe`. Contains responsive design helpers (`ScreenConstraints`), the light/dark theme engine, component modules (`navbar`, `item_list`, `modals`), and persistent multi-tiered state management.
 - **[`crates/desktop`](crates/desktop)**: Native runner configured with `tracing` logging and native window viewport settings.
-- **[`crates/web`](crates/web)**: WebAssembly client entrypoint with `wasm-bindgen`, WebRunner initialization, and PWA / serverless assets (`index.html`, `index.css`, `sw.js`, `manifest.json`, `_headers`, `_redirects`).
+- **[`crates/web`](crates/web)**: WebAssembly client entrypoint with `wasm-bindgen`, WebRunner initialization, and PWA / serverless assets (`index.html`, `index.css`, `index.js`, `sw.js`, `manifest.json`, `_headers`, `_redirects`).
 
 ---
 
 ## ✨ Key Features
 
-- **⚡ Native & Serverless Dual-Target**: Compile identical application logic to desktop native executables or static client-side WASM bundles.
-- **💾 Automatic Cross-Platform State Persistence**: Synchronizes local state seamlessly across browser refreshes and desktop restarts using `eframe::Storage`.
-- **📱 Responsive & Touch-Friendly UI**: Layout automatically adapts across desktop displays, mobile viewports, and constrained height windows.
-- **🎨 Theme Engine**: Built-in Dark Mode and a soothing, high-contrast Warm Light Mode.
-- **⌨️ Intuitive Keyboard Support**: Press `Enter` to quickly submit new items and `Escape` to close open modal dialogs.
-- **📦 Data Interchange & File Downloads**: Built-in JSON & CSV export/import dialogs with copy-to-clipboard toasts and direct browser/filesystem download triggers (`trigger_file_download`).
-- **📶 Immutable Serverless PWA Caching**: Hybrid service worker caching strategy (**Network-First** for `index.html` to ensure atomic releases; **Cache-First** for immutable, content-hashed `.wasm`, `.js`, and `.css` assets) with offline fallback.
-- **🛡️ SRI Minification Immunity**: Configured with `data-integrity="none"` to allow aggressive post-build asset minification (HTML, CSS, JS) without SRI hash mismatches or white screens.
-- **🚀 Cloudflare Pages Build System v3 & GitHub Pages CI/CD**: Fully compliant with Cloudflare's modern v3 build image, automated toolchain installation (`rust-toolchain.toml`), SPA routing (`_redirects`), Cloudflare headers (`_headers`), Wrangler configuration (`wrangler.toml`), and GitHub Actions workflow (`.github/workflows/static.yml`).
+- **⚡ Native Desktop & Serverless Web Dual-Target**: Compile identical application logic to desktop native executables (Windows, macOS, Linux) or static client-side WASM bundles for Cloudflare Pages and GitHub Pages.
+- **💾 Robust Multi-Tier State Persistence**:
+  - **Tier 1 (Fast Sync)**: Synchronous browser `localStorage` under dedicated storage key `serverless_template_app_state`.
+  - **Tier 2 (Extended Quota)**: Asynchronous `IndexedDB` fallback if `localStorage` quota is exceeded.
+  - **Dual-Format Deserializer**: Attempts JSON deserialization first, seamlessly falling back to RON for backwards and forwards compatibility.
+  - **Active State Persistence**: Dispatches immediate saves on user interactions (adds, toggles, deletions, resets, imports, theme changes) in addition to window close / `beforeunload` events.
+  - **Storage Diagnostics Modal**: Live inspection of persistence status (persistent vs. ephemeral) with one-click permission requests (`StorageManager.persist()`).
+- **📱 Responsive & Touch-Friendly UI**: Layout automatically adapts across widescreen desktop monitors, tablets, and constrained mobile portrait viewports with adaptive element sizing and soft-wrap line calculations.
+- **🎨 Theme Engine**: Instant, high-contrast toggle between Charcoal Dark Mode and Warm Light Mode with persistent preference storage.
+- **⌨️ Intuitive Keyboard Support**: Press `Enter` to submit new items instantly and `Escape` to close any open modal dialog.
+- **📦 Data Interchange & File Downloads**:
+  - Export and import formatted **JSON**, RFC 4180-compliant **CSV**, and compact **Compressed BSON** (Zlib-compressed binary).
+  - Built-in copy-to-clipboard feedback toast and direct browser file download triggers (`trigger_text_download`, `trigger_binary_download`).
+- **📶 Immutable Serverless PWA Caching**: Hybrid service worker caching strategy (**Network-First** for `index.html` to guarantee atomic releases; **Cache-First** for immutable, content-hashed `.wasm`, `.js`, and `.css` assets) with offline fallback.
+- **🛡️ SRI Minification Immunity**: Configured with `data-integrity="none"` in `index.html` to allow aggressive post-build asset minification (HTML, CSS, JS) without SRI hash mismatches or white screens.
+- **🚀 Automated CI/CD & Deployment Pipelines**: Pre-configured for Cloudflare Pages Build System v3 (`deploy.sh`), GitHub Pages (`.github/workflows/static.yml`), and full CI test suite (`.github/workflows/ci.yml`).
 
 ---
 
 ## 🛠️ Build Requirements
 
-- **Rust**: Automatically managed via [`rust-toolchain.toml`](rust-toolchain.toml) (installs stable with `wasm32-unknown-unknown`).
+- **Rust Toolchain**: Automatically managed via [`rust-toolchain.toml`](rust-toolchain.toml) (installs stable with `wasm32-unknown-unknown`).
 - **Trunk Bundler**:
   ```bash
   cargo install trunk
   ```
-- *(Optional)* **wasm-opt** (Binaryen v132) for release size optimization.
+- *(Optional)* **wasm-opt** (Binaryen v122+) for release binary size optimization.
 
 ---
 
 ## 🚀 Development Quickstart
 
-### 1. Run Native Desktop App
-```bash
-cargo run -p desktop
-```
-
-### 2. Run Web App Locally
+### 1. Run Web App Locally (Trunk)
 ```bash
 trunk serve
 ```
 Open [http://localhost:8080](http://localhost:8080) in your browser. Live reloading is automatically enabled.
 
-### 3. Run Test Suite
+### 2. Run Native Desktop App
 ```bash
-cargo test --workspace
+cargo run -p desktop
 ```
 
-### 4. Run Clippy Static Analysis
+### 3. Run Test Suite
 ```bash
-cargo clippy --workspace --all-targets
+# Standard cargo test
+cargo test --workspace
+
+# Or with cargo-nextest (faster, parallel execution)
+cargo nextest run --workspace
+```
+
+### 4. Run Static Analysis & Linter
+```bash
+cargo clippy --workspace --all-targets -- -D warnings
 ```
 
 ---
 
 ## 📦 Production Builds & Deployment
 
-### Native Desktop Binary
+### Static Serverless WASM Bundle (Trunk)
 ```bash
-cargo build -p desktop --release
+trunk build --release
 ```
-The optimized executable will be located in `target/release/`.
+The optimized output assets (`index.html`, `.wasm`, `.js`, `.css`, `_headers`, `_redirects`, `sw.js`) will be located in `crates/web/dist/`.
 
 ### Cloudflare Pages (Build System v3)
 
@@ -92,24 +124,44 @@ bash deploy.sh
   - `RUST_VERSION`: `stable` (Optional if `rust-toolchain.toml` is present)
   - `CARGO_HOME`: `/opt/buildhome/.cargo`
 
-#### Local Testing with Wrangler:
+#### Local Preview with Wrangler:
 ```bash
 trunk build --release
-wrangler pages dev
+npx wrangler pages dev crates/web/dist
 ```
 
 ### GitHub Pages Deployment
 
-The included workflow in [`.github/workflows/static.yml`](.github/workflows/static.yml) automatically builds and deploys your WASM web application to GitHub Pages whenever you push to `main`.
+The repository includes a ready-to-use GitHub Actions workflow in [`.github/workflows/static.yml`](.github/workflows/static.yml) that builds, minifies, and deploys your WASM web application to GitHub Pages whenever changes are pushed to `main`.
+
+### Native Desktop Binary
+```bash
+cargo build -p desktop --release
+```
+The compiled release executable will be located in `target/release/`.
 
 ---
 
 ## 🧩 Customizing for Your App
 
-1. **Rename Workspace & Metadata**: Update `name`, `version`, `authors`, and `description` in [`Cargo.toml`](Cargo.toml) and subcrate manifests.
-2. **Define Domain Data**: Replace `Item` and `ItemCollection` in [`crates/shared/src/models.rs`](crates/shared/src/models.rs) with your application's data models.
-3. **Build Views & Components**: Update [`crates/app/src/lib.rs`](crates/app/src/lib.rs) with your UI widgets, layouts, and panels.
+1. **Rename Workspace & Metadata**: Update `name`, `version`, `authors`, and `repository` in [`Cargo.toml`](Cargo.toml) and subcrate manifests.
+2. **Define Domain Data**: Replace `Item` and `ItemCollection` in [`crates/shared/src/models.rs`](crates/shared/src/models.rs) with your application's domain models.
+3. **Build Views & Components**: Add or update UI views in [`crates/app/src/components/`](crates/app/src/components/):
+   - [`components/navbar.rs`](crates/app/src/components/navbar.rs): Header bar, navigation, and global tools.
+   - [`components/item_list.rs`](crates/app/src/components/item_list.rs): Main content layout, input forms, and data cards.
+   - [`components/modals.rs`](crates/app/src/components/modals.rs): Dialogs, import/export dialogs, and diagnostic panels.
 4. **Update PWA & SEO Tags**: Customize `title`, meta description, OpenGraph tags, and icons in [`crates/web/index.html`](crates/web/index.html) and [`crates/web/manifest.json`](crates/web/manifest.json).
+
+---
+
+## 🧪 Testing & Quality Assurance
+
+| Test Suite | Location | Purpose |
+|---|---|---|
+| **App Tests** | `crates/app/tests/app_tests.rs` | UI initialization, dialog state, multi-tier JSON/RON persistence |
+| **Model Tests** | `crates/shared/tests/models_tests.rs` | Collection logic, JSON/CSV/BSON roundtrip, backward compatibility |
+| **Desktop Smoke** | `crates/desktop/tests/smoke_tests.rs` | Desktop native options and viewport validation |
+| **Web Smoke** | `crates/web/tests/smoke_tests.rs` | WebRunner app construction and wasm compatibility |
 
 ---
 
