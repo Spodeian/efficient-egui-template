@@ -40,7 +40,7 @@ base64 = "0.22"
 ron = "0.12"
 
 [profile.release]
-opt-level = "z"
+opt-level = 3
 lto = "fat"
 codegen-units = 1
 panic = "abort"
@@ -54,7 +54,7 @@ opt-level = 2
 codegen-units = 256
 
 [profile.bench]
-opt-level = "z"
+opt-level = 3
 lto = "fat"
 codegen-units = 1
 debug = false
