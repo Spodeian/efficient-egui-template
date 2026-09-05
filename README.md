@@ -21,7 +21,7 @@ The workspace is organized into four decoupled, single-responsibility crates:
 graph TD
     Shared["crates/shared<br/>(Domain Models, JSON/CSV/BSON Serialization, State)"]
     App["crates/app<br/>(egui UI Components, Responsive Layout, Modals, Theme, Storage)"]
-    Desktop["crates/desktop<br/>(Native Desktop Executable via eframe / Winit)"]
+    Desktop["crates/desktop<br/>(Native Desktop Executable via eframe / Winit) + mimalloc"]
     Web["crates/web<br/>(Static WebAssembly Entrypoint, PWA Service Worker, Trunk Assets)"]
 
     App --> Shared
