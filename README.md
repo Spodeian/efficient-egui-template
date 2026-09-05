@@ -172,4 +172,4 @@ The compiled release executable will be located in `target/release/`.
 
 ## 📄 License
 
-This template is dual-licensed under [MIT](LICENSE) or Apache 2.0 at your option.
+This template is dual-licensed under [MIT](LICENSE-MIT) or [Apache 2.0](LICENSE-APACHE) at your option.

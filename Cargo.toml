@@ -10,7 +10,7 @@ members = [
 # Shared metadata for all workspace packages
 [workspace.package]
 version = "0.1.0"
-authors = ["Liam"]
+authors = ["Liam <spodeian@proton.me>"]
 edition = "2024"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
