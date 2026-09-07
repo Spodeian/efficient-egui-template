@@ -1,3 +1,6 @@
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::if_same_then_else)]
+
 pub mod components;
 pub mod storage_manager;
 
