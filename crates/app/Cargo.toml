@@ -25,3 +25,7 @@ ron = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true, features = ["HtmlDocument", "Window", "Document", "Blob", "BlobPropertyBag", "Url", "HtmlAnchorElement", "Location", "Storage"] }
 js-sys = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+eframe = { workspace = true, features = ["x11", "wayland"] }
+
