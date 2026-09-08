@@ -1,6 +1,6 @@
 //! Top navigation bar and global header controls.
 
-use crate::{storage_manager::*, ScreenConstraints, TemplateApp};
+use crate::{ScreenConstraints, TemplateApp, storage_manager::*};
 use eframe::egui;
 use shared::ThemeMode;
 
@@ -53,7 +53,11 @@ pub fn render_navbar(app: &mut TemplateApp, ui: &mut egui::Ui, constraints: &Scr
                     app.persist_state();
                 }
 
-                let help_text = if constraints.is_mobile { "Help" } else { "Help" };
+                let help_text = if constraints.is_mobile {
+                    "Help"
+                } else {
+                    "Help"
+                };
                 if ui
                     .button(help_text)
                     .on_hover_text("Help, architecture & shortcuts")

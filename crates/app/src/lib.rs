@@ -9,7 +9,7 @@ pub use storage_manager::*;
 
 use eframe::egui;
 use shared::{
-    export_to_compressed_bson, export_to_csv, export_to_json, AppState, Priority, ThemeMode,
+    AppState, Priority, ThemeMode, export_to_compressed_bson, export_to_csv, export_to_json,
 };
 #[allow(unused_imports)]
 use tracing::{error, info, warn};
@@ -145,7 +145,7 @@ impl TemplateApp {
     pub fn open_export_dialog(&mut self, format: ExportFormat) {
         if format == ExportFormat::Bson {
             if let Ok(bytes) = export_to_compressed_bson(&self.state.collection) {
-                use base64::{engine::general_purpose, Engine as _};
+                use base64::{Engine as _, engine::general_purpose};
                 self.export_text_buffer = general_purpose::STANDARD.encode(&bytes);
                 trigger_binary_download("data_backup.bson", &bytes, "application/octet-stream");
             }

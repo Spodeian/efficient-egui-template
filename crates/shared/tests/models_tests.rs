@@ -1,4 +1,6 @@
-use shared::{export_to_csv, export_to_json, import_from_csv, import_from_json, ItemCollection, Priority};
+use shared::{
+    ItemCollection, Priority, export_to_csv, export_to_json, import_from_csv, import_from_json,
+};
 
 #[test]
 fn test_item_collection_defaults_and_operations() {
@@ -57,7 +59,11 @@ fn test_clear_completed() {
 #[test]
 fn test_compressed_bson_roundtrip() {
     let mut collection = ItemCollection::default();
-    collection.add("BSON Persistence Item", "State compressed with zlib", Priority::High);
+    collection.add(
+        "BSON Persistence Item",
+        "State compressed with zlib",
+        Priority::High,
+    );
 
     let bytes = shared::export_to_compressed_bson(&collection).expect("BSON export failed");
     assert!(!bytes.is_empty());
@@ -71,5 +77,8 @@ fn test_compressed_bson_roundtrip() {
 fn test_state_backward_compatibility() {
     let legacy_json = r#"{"config":{},"collection":{"items":[]}}"#;
     let app_state: Result<shared::AppState, _> = serde_json::from_str(legacy_json);
-    assert!(app_state.is_ok(), "Should parse legacy state without failure");
+    assert!(
+        app_state.is_ok(),
+        "Should parse legacy state without failure"
+    );
 }

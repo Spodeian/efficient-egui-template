@@ -30,7 +30,12 @@ pub struct Item {
 }
 
 impl Item {
-    pub fn new(id: u64, title: impl Into<String>, description: impl Into<String>, priority: Priority) -> Self {
+    pub fn new(
+        id: u64,
+        title: impl Into<String>,
+        description: impl Into<String>,
+        priority: Priority,
+    ) -> Self {
         Self {
             id,
             title: title.into(),
@@ -84,7 +89,12 @@ impl ItemCollection {
         self.next_id = 4;
     }
 
-    pub fn add(&mut self, title: impl Into<String>, description: impl Into<String>, priority: Priority) -> u64 {
+    pub fn add(
+        &mut self,
+        title: impl Into<String>,
+        description: impl Into<String>,
+        priority: Priority,
+    ) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
         self.items.push(Item::new(id, title, description, priority));

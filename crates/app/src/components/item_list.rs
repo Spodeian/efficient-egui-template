@@ -4,7 +4,11 @@ use crate::{ScreenConstraints, TemplateApp};
 use eframe::egui;
 use shared::Priority;
 
-pub fn render_summary_cards(app: &mut TemplateApp, ui: &mut egui::Ui, constraints: &ScreenConstraints) {
+pub fn render_summary_cards(
+    app: &mut TemplateApp,
+    ui: &mut egui::Ui,
+    constraints: &ScreenConstraints,
+) {
     let total = app.state.collection.total_count();
     let completed = app.state.collection.completed_count();
     let ratio = app.state.collection.completion_ratio();
@@ -36,7 +40,11 @@ pub fn render_summary_cards(app: &mut TemplateApp, ui: &mut egui::Ui, constraint
         });
 }
 
-pub fn render_new_item_form(app: &mut TemplateApp, ui: &mut egui::Ui, constraints: &ScreenConstraints) {
+pub fn render_new_item_form(
+    app: &mut TemplateApp,
+    ui: &mut egui::Ui,
+    constraints: &ScreenConstraints,
+) {
     egui::Frame::group(ui.style())
         .inner_margin(if constraints.is_mobile { 10.0 } else { 16.0 })
         .corner_radius(8.0)
@@ -70,9 +78,21 @@ pub fn render_new_item_form(app: &mut TemplateApp, ui: &mut egui::Ui, constraint
                         egui::ComboBox::from_id_salt("mobile_priority_dropdown")
                             .selected_text(format!("Priority: {}", app.new_item_priority.label()))
                             .show_ui(ui, |ui| {
-                                ui.selectable_value(&mut app.new_item_priority, Priority::Low, "Low");
-                                ui.selectable_value(&mut app.new_item_priority, Priority::Medium, "Medium");
-                                ui.selectable_value(&mut app.new_item_priority, Priority::High, "High");
+                                ui.selectable_value(
+                                    &mut app.new_item_priority,
+                                    Priority::Low,
+                                    "Low",
+                                );
+                                ui.selectable_value(
+                                    &mut app.new_item_priority,
+                                    Priority::Medium,
+                                    "Medium",
+                                );
+                                ui.selectable_value(
+                                    &mut app.new_item_priority,
+                                    Priority::High,
+                                    "High",
+                                );
                             });
 
                         if ui.button("➕ Add Item").clicked() {
@@ -102,7 +122,11 @@ pub fn render_new_item_form(app: &mut TemplateApp, ui: &mut egui::Ui, constraint
                         .selected_text(app.new_item_priority.label())
                         .show_ui(ui, |ui| {
                             ui.selectable_value(&mut app.new_item_priority, Priority::Low, "Low");
-                            ui.selectable_value(&mut app.new_item_priority, Priority::Medium, "Medium");
+                            ui.selectable_value(
+                                &mut app.new_item_priority,
+                                Priority::Medium,
+                                "Medium",
+                            );
                             ui.selectable_value(&mut app.new_item_priority, Priority::High, "High");
                         });
 
@@ -232,21 +256,24 @@ pub fn render_item_list(app: &mut TemplateApp, ui: &mut egui::Ui, constraints: &
                                 }
                             });
 
-                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                if ui.button("Delete").on_hover_text("Delete item").clicked() {
-                                    item_ids_to_remove.push(item.id);
-                                }
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui.button("Delete").on_hover_text("Delete item").clicked() {
+                                        item_ids_to_remove.push(item.id);
+                                    }
 
-                                let badge_color = match item.priority {
-                                    Priority::High => egui::Color32::from_rgb(220, 70, 70),
-                                    Priority::Medium => egui::Color32::from_rgb(230, 140, 50),
-                                    Priority::Low => egui::Color32::from_rgb(100, 140, 180),
-                                };
-                                ui.colored_label(
-                                    badge_color,
-                                    egui::RichText::new(item.priority.label()).strong().small(),
-                                );
-                            });
+                                    let badge_color = match item.priority {
+                                        Priority::High => egui::Color32::from_rgb(220, 70, 70),
+                                        Priority::Medium => egui::Color32::from_rgb(230, 140, 50),
+                                        Priority::Low => egui::Color32::from_rgb(100, 140, 180),
+                                    };
+                                    ui.colored_label(
+                                        badge_color,
+                                        egui::RichText::new(item.priority.label()).strong().small(),
+                                    );
+                                },
+                            );
                         });
                     });
                 ui.add_space(4.0);

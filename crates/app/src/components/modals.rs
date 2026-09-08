@@ -1,10 +1,10 @@
 //! Modal dialogs, warning banners, and data transfer views.
 
-use crate::{storage_manager::*, ExportFormat, TemplateApp};
+use crate::{ExportFormat, TemplateApp, storage_manager::*};
 use eframe::egui;
 use shared::{
-    export_to_compressed_bson, import_from_compressed_bson, import_from_csv, import_from_json,
-    ItemCollection,
+    ItemCollection, export_to_compressed_bson, import_from_compressed_bson, import_from_csv,
+    import_from_json,
 };
 
 pub fn render_warning_banners(app: &mut TemplateApp, ui: &mut egui::Ui) {
@@ -241,7 +241,8 @@ pub fn render_dialogs(app: &mut TemplateApp, ui: &mut egui::Ui) {
                                 );
                             }
                             ExportFormat::Bson => {
-                                if let Ok(bytes) = export_to_compressed_bson(&app.state.collection) {
+                                if let Ok(bytes) = export_to_compressed_bson(&app.state.collection)
+                                {
                                     trigger_binary_download(
                                         "data_backup.bson",
                                         &bytes,
@@ -278,28 +279,27 @@ pub fn render_dialogs(app: &mut TemplateApp, ui: &mut egui::Ui) {
             .default_size(egui::vec2(500.0, 360.0))
             .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
             .show(ui.ctx(), |ui| {
-                ui.label("Paste JSON, CSV or Base64 BSON data below to import into your collection:");
+                ui.label(
+                    "Paste JSON, CSV or Base64 BSON data below to import into your collection:",
+                );
                 ui.add_space(8.0);
 
-                egui::ScrollArea::both()
-                    .max_height(200.0)
-                    .show(ui, |ui| {
-                        ui.add(
-                            egui::TextEdit::multiline(&mut app.import_text_buffer)
-                                .font(egui::TextStyle::Monospace)
-                                .hint_text("Paste JSON, CSV, or Base64 BSON content here...")
-                                .desired_width(f32::INFINITY)
-                                .desired_rows(8),
-                        );
-                    });
+                egui::ScrollArea::both().max_height(200.0).show(ui, |ui| {
+                    ui.add(
+                        egui::TextEdit::multiline(&mut app.import_text_buffer)
+                            .font(egui::TextStyle::Monospace)
+                            .hint_text("Paste JSON, CSV, or Base64 BSON content here...")
+                            .desired_width(f32::INFINITY)
+                            .desired_rows(8),
+                    );
+                });
 
                 ui.add_space(10.0);
                 ui.horizontal(|ui| {
                     if ui.button("Apply Import").clicked() {
                         let input = app.import_text_buffer.trim();
                         if input.is_empty() {
-                            app.import_result_message =
-                                Some(Err("Input is empty.".to_string()));
+                            app.import_result_message = Some(Err("Input is empty.".to_string()));
                         } else if input.starts_with('{') {
                             match import_from_json(input) {
                                 Ok(col) => {
@@ -315,9 +315,10 @@ pub fn render_dialogs(app: &mut TemplateApp, ui: &mut egui::Ui) {
                                     app.import_result_message = Some(Err(e.to_string()));
                                 }
                             }
-                        } else if let Ok(decoded_bytes) =
-                            base64::Engine::decode(&base64::engine::general_purpose::STANDARD, input)
-                        {
+                        } else if let Ok(decoded_bytes) = base64::Engine::decode(
+                            &base64::engine::general_purpose::STANDARD,
+                            input,
+                        ) {
                             match import_from_compressed_bson(&decoded_bytes) {
                                 Ok(col) => {
                                     let count = col.total_count();
@@ -425,7 +426,10 @@ pub fn render_storage_modal(app: &mut TemplateApp, ui: &mut egui::Ui) {
             ui.horizontal(|ui| {
                 ui.label("PWA Installation:");
                 if app.storage_diag.is_pwa_installed {
-                    ui.colored_label(egui::Color32::from_rgb(80, 200, 100), "Installed (Permanent App)");
+                    ui.colored_label(
+                        egui::Color32::from_rgb(80, 200, 100),
+                        "Installed (Permanent App)",
+                    );
                 } else if app.storage_diag.pwa_install_available {
                     ui.label("Available to Install");
                 } else {

@@ -2,11 +2,10 @@
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-
 use app::TemplateApp;
-use eframe::egui;
 use eframe::NativeOptions;
-use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+use eframe::egui;
+use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
 fn main() -> eframe::Result<()> {
     // Logging setup: INFO for application logs, WARN for external library modules
@@ -33,4 +32,3 @@ fn main() -> eframe::Result<()> {
         Box::new(|cc| Ok(Box::new(TemplateApp::new(cc)))),
     )
 }
-

@@ -3,7 +3,7 @@
 #[cfg(target_arch = "wasm32")]
 use app::TemplateApp;
 #[cfg(target_arch = "wasm32")]
-use wasm_bindgen::{prelude::*, JsCast};
+use wasm_bindgen::{JsCast, prelude::*};
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(start)]

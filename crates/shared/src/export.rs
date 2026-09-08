@@ -61,9 +61,7 @@ pub fn import_from_csv(csv_str: &str) -> Result<ItemCollection, DataTransferErro
             )));
         }
 
-        let id = fields[0]
-            .parse::<u64>()
-            .unwrap_or_else(|_| max_id + 1);
+        let id = fields[0].parse::<u64>().unwrap_or_else(|_| max_id + 1);
         let title = fields[1].clone();
         let description = fields[2].clone();
         let priority = match fields[3].to_lowercase().as_str() {
@@ -136,12 +134,15 @@ fn parse_csv_line(line: &str) -> Vec<String> {
 
 /// Exports the collection into compressed BSON binary bytes (Zlib-compressed BSON).
 pub fn export_to_compressed_bson(collection: &ItemCollection) -> Result<Vec<u8>, String> {
-    let bson_bytes = bson::to_vec(collection).map_err(|e| format!("BSON serialization failed: {}", e))?;
+    let bson_bytes =
+        bson::to_vec(collection).map_err(|e| format!("BSON serialization failed: {}", e))?;
     Ok(miniz_oxide::deflate::compress_to_vec_zlib(&bson_bytes, 6))
 }
 
 /// Imports and restores an ItemCollection from a compressed (or raw) BSON slice.
 pub fn import_from_compressed_bson(bytes: &[u8]) -> Result<ItemCollection, String> {
-    let bson_bytes = miniz_oxide::inflate::decompress_to_vec_zlib(bytes).unwrap_or_else(|_| bytes.to_vec());
-    bson::from_slice::<ItemCollection>(&bson_bytes).map_err(|e| format!("BSON deserialization failed: {}", e))
+    let bson_bytes =
+        miniz_oxide::inflate::decompress_to_vec_zlib(bytes).unwrap_or_else(|_| bytes.to_vec());
+    bson::from_slice::<ItemCollection>(&bson_bytes)
+        .map_err(|e| format!("BSON deserialization failed: {}", e))
 }
