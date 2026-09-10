@@ -70,7 +70,7 @@ graph TD
   ```bash
   nvm use # or fnm use
   ```
-- *(Optional)* **wasm-opt** (Binaryen v122+) for release binary size optimization.
+- *(Optional)* **wasm-opt** (Binaryen v132+) for release binary size optimization.
 
 ---
 
