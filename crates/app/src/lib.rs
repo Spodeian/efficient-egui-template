@@ -271,6 +271,13 @@ impl eframe::App for TemplateApp {
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         self.apply_theme(ui.ctx());
+        if self.state.config.theme.is_high_contrast() {
+            ui.spacing_mut().interact_size = egui::vec2(44.0, 44.0);
+            ui.spacing_mut().button_padding = egui::vec2(14.0, 10.0);
+        } else {
+            ui.spacing_mut().interact_size.y = ui.spacing_mut().interact_size.y.max(32.0);
+            ui.spacing_mut().button_padding = egui::vec2(12.0, 8.0);
+        }
         self.handle_keyboard_shortcuts(ui.ctx());
 
         // Periodic diagnostics poll (every 2 seconds)
