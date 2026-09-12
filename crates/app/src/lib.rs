@@ -302,8 +302,6 @@ impl eframe::App for TemplateApp {
         components::navbar::render_navbar(self, ui, &constraints);
 
         egui::CentralPanel::default().show(ui, |ui| {
-            components::modals::render_warning_banners(self, ui);
-            ui.add_space(8.0);
             components::item_list::render_summary_cards(self, ui, &constraints);
             ui.add_space(10.0);
             components::item_list::render_new_item_form(self, ui, &constraints);
@@ -312,5 +310,6 @@ impl eframe::App for TemplateApp {
         });
 
         components::modals::render_dialogs(self, ui);
+        components::modals::render_warning_banners(self, ui.ctx());
     }
 }
