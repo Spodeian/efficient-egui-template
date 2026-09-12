@@ -30,11 +30,23 @@ pub fn render_summary_cards(
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     let bar_width = (ui.available_width() - 8.0).clamp(100.0, 300.0);
-                    ui.add(
+                    let pb = ui.add(
                         egui::ProgressBar::new(ratio)
                             .text(format!("{:.0}%", ratio * 100.0))
                             .desired_width(bar_width),
                     );
+                    pb.widget_info(move || {
+                        egui::WidgetInfo::labeled(
+                            egui::WidgetType::ProgressIndicator,
+                            true,
+                            format!(
+                                "Task completion progress: {:.0}% ({} of {} completed)",
+                                ratio * 100.0,
+                                completed,
+                                total
+                            ),
+                        )
+                    });
                 });
             });
         });

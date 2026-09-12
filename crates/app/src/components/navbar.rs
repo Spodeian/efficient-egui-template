@@ -2,7 +2,6 @@
 
 use crate::{ScreenConstraints, TemplateApp, storage_manager::*};
 use eframe::egui;
-use shared::ThemeMode;
 
 pub fn render_navbar(app: &mut TemplateApp, ui: &mut egui::Ui, constraints: &ScreenConstraints) {
     egui::Panel::top("top_panel").show(ui, |ui| {
@@ -24,32 +23,18 @@ pub fn render_navbar(app: &mut TemplateApp, ui: &mut egui::Ui, constraints: &Scr
             }
 
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                let theme_icon = match app.state.config.theme {
-                    ThemeMode::Light => {
-                        if constraints.is_mobile {
-                            "Dark"
-                        } else {
-                            "Dark Mode"
-                        }
-                    }
-                    ThemeMode::Dark => {
-                        if constraints.is_mobile {
-                            "Light"
-                        } else {
-                            "Light Mode"
-                        }
-                    }
+                let theme_text = if constraints.is_mobile {
+                    format!("{} {}", app.state.config.theme.icon(), app.state.config.theme.label())
+                } else {
+                    format!("{} Theme: {}", app.state.config.theme.icon(), app.state.config.theme.label())
                 };
 
                 if ui
-                    .button(theme_icon)
-                    .on_hover_text("Toggle dark / light theme")
+                    .button(theme_text)
+                    .on_hover_text("Cycle visual themes: Dark, Warm Light, High Contrast (Dark), and High Contrast (Light)")
                     .clicked()
                 {
-                    app.state.config.theme = match app.state.config.theme {
-                        ThemeMode::Light => ThemeMode::Dark,
-                        ThemeMode::Dark => ThemeMode::Light,
-                    };
+                    app.state.config.theme = app.state.config.theme.next();
                     app.persist_state();
                 }
 
