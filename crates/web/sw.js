@@ -1,6 +1,6 @@
 // Service Worker for Serverless & Desktop Template
 // Strategy: Cache-First with Background Network Revalidation (Stale-While-Revalidate)
-const CACHE_NAME = 'serverless-desktop-template-cache-v20260908';
+const CACHE_NAME = 'serverless-desktop-template-cache-v20260912';
 
 // Static assets to pre-cache on install
 const PRECACHE_ASSETS = [

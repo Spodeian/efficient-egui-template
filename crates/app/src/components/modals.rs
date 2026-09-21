@@ -7,113 +7,83 @@ use shared::{
     import_from_json,
 };
 
-pub fn render_warning_banners(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn render_warning_banners(app: &mut TemplateApp, ctx: &egui::Context) {
     let is_ephemeral = app.storage_diag.is_persisted == Some(false);
     let is_quota = app.storage_diag.quota_exceeded;
 
-    if is_ephemeral && is_quota && !app.dismissed_combined_warning {
-        egui::Frame::group(ui.style())
-            .fill(egui::Color32::from_rgb(60, 20, 20))
-            .inner_margin(8.0)
-            .corner_radius(6.0)
-            .show(ui, |ui| {
-                ui.horizontal(|ui| {
-                    ui.label(
-                        egui::RichText::new(
-                            "Storage Alert: Storage is Ephemeral AND Quota Limit Exceeded!",
-                        )
-                        .color(egui::Color32::from_rgb(255, 120, 120))
-                        .strong(),
-                    );
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui.button("Dismiss").clicked() {
-                            app.dismissed_combined_warning = true;
-                        }
-                        if ui.button("Save .bson Backup").clicked() {
-                            if let Ok(bytes) = export_to_compressed_bson(&app.state.collection) {
-                                trigger_binary_download(
-                                    "emergency_backup.bson",
-                                    &bytes,
-                                    "application/octet-stream",
-                                );
-                            }
-                        }
-                        if ui.button("Request Permission").clicked() {
-                            request_persistent_storage();
-                        }
-                    });
-                });
-            });
-        ui.add_space(4.0);
-    } else {
-        if is_ephemeral && !app.dismissed_ephemeral_warning {
-            egui::Frame::group(ui.style())
-                .fill(egui::Color32::from_rgb(50, 35, 10))
-                .inner_margin(8.0)
-                .corner_radius(6.0)
-                .show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        ui.label(
-                            egui::RichText::new(
-                                "Ephemeral Storage: Browser may clear local data under storage pressure.",
-                            )
-                            .color(egui::Color32::from_rgb(250, 190, 80))
-                            .strong(),
-                        );
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            if ui.button("Dismiss").clicked() {
-                                app.dismissed_ephemeral_warning = true;
-                            }
-                            if ui.button("Backup .bson").clicked() {
-                                if let Ok(bytes) = export_to_compressed_bson(&app.state.collection) {
-                                    trigger_binary_download(
-                                        "data_backup.bson",
-                                        &bytes,
-                                        "application/octet-stream",
-                                    );
-                                }
-                            }
-                            if ui.button("Request Persistence").clicked() {
-                                request_persistent_storage();
-                            }
-                        });
-                    });
-                });
-            ui.add_space(4.0);
-        }
+    let show_combined = is_ephemeral && is_quota && !app.dismissed_combined_warning;
+    let show_ephemeral = is_ephemeral && !app.dismissed_ephemeral_warning;
+    let show_quota = is_quota && !app.dismissed_quota_warning;
 
-        if is_quota && !app.dismissed_quota_warning {
-            egui::Frame::group(ui.style())
-                .fill(egui::Color32::from_rgb(55, 25, 15))
-                .inner_margin(8.0)
-                .corner_radius(6.0)
-                .show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        ui.label(
-                            egui::RichText::new(
-                                "Storage Quota Exceeded: State migrated to IndexedDB fallback tier.",
-                            )
-                            .color(egui::Color32::from_rgb(250, 140, 80))
-                            .strong(),
-                        );
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            if ui.button("Dismiss").clicked() {
-                                app.dismissed_quota_warning = true;
-                            }
-                            if ui.button("Save .bson Backup").clicked() {
-                                if let Ok(bytes) = export_to_compressed_bson(&app.state.collection) {
-                                    trigger_binary_download(
-                                        "data_backup.bson",
-                                        &bytes,
-                                        "application/octet-stream",
-                                    );
-                                }
-                            }
+    if show_combined || show_ephemeral || show_quota {
+        let (msg, fill_color, stroke_color, text_color) = if show_combined {
+            (
+                "Storage Alert: Storage is Ephemeral AND Quota Limit Exceeded!",
+                egui::Color32::from_rgba_premultiplied(35, 20, 20, 245),
+                egui::Color32::from_rgb(240, 80, 80),
+                egui::Color32::from_rgb(255, 120, 120),
+            )
+        } else if show_ephemeral {
+            (
+                "Ephemeral Storage: Browser may clear local data under storage pressure.",
+                egui::Color32::from_rgba_premultiplied(35, 28, 15, 245),
+                egui::Color32::from_rgb(220, 160, 30),
+                egui::Color32::from_rgb(255, 200, 80),
+            )
+        } else {
+            (
+                "Storage Quota Exceeded: State migrated to IndexedDB fallback tier.",
+                egui::Color32::from_rgba_premultiplied(35, 28, 15, 245),
+                egui::Color32::from_rgb(220, 160, 30),
+                egui::Color32::from_rgb(255, 200, 80),
+            )
+        };
+
+        egui::Area::new(egui::Id::new("storage_warning_banner_area"))
+            .order(egui::Order::Foreground)
+            .anchor(egui::Align2::CENTER_BOTTOM, egui::vec2(0.0, -20.0))
+            .show(ctx, |ui| {
+                egui::Frame::NONE
+                    .fill(fill_color)
+                    .stroke(egui::Stroke::new(1.0_f32, stroke_color))
+                    .corner_radius(8)
+                    .inner_margin(egui::Margin::symmetric(16, 10))
+                    .show(ui, |ui| {
+                        ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                            ui.label(egui::RichText::new(msg).strong().color(text_color));
+                            ui.add_space(6.0);
+                            ui.with_layout(
+                                egui::Layout::left_to_right(egui::Align::Center)
+                                    .with_main_align(egui::Align::Center),
+                                |ui| {
+                                    if ui.button("Save .bson Backup").clicked() {
+                                        if let Ok(bytes) =
+                                            export_to_compressed_bson(&app.state.collection)
+                                        {
+                                            trigger_binary_download(
+                                                "data_backup.bson",
+                                                &bytes,
+                                                "application/octet-stream",
+                                            );
+                                        }
+                                    }
+                                    if ui.button("Request Persistence").clicked() {
+                                        request_persistent_storage();
+                                    }
+                                    if ui.button("Dismiss").clicked() {
+                                        if show_combined {
+                                            app.dismissed_combined_warning = true;
+                                        } else if show_ephemeral {
+                                            app.dismissed_ephemeral_warning = true;
+                                        } else {
+                                            app.dismissed_quota_warning = true;
+                                        }
+                                    }
+                                },
+                            );
                         });
                     });
-                });
-            ui.add_space(4.0);
-        }
+            });
     }
 }
 

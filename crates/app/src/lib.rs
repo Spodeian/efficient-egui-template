@@ -194,6 +194,50 @@ impl TemplateApp {
                 light
             }
             ThemeMode::Dark => egui::Visuals::dark(),
+            ThemeMode::HighContrastDark => {
+                let mut hc = egui::Visuals::dark();
+                hc.panel_fill = egui::Color32::BLACK;
+                hc.window_fill = egui::Color32::BLACK;
+                hc.extreme_bg_color = egui::Color32::from_rgb(10, 10, 10);
+                hc.widgets.noninteractive.fg_stroke = egui::Stroke::new(1.5, egui::Color32::WHITE);
+                hc.widgets.inactive.fg_stroke = egui::Stroke::new(1.5, egui::Color32::WHITE);
+                hc.widgets.hovered.fg_stroke =
+                    egui::Stroke::new(2.0, egui::Color32::from_rgb(255, 255, 0));
+                hc.widgets.active.fg_stroke =
+                    egui::Stroke::new(2.0, egui::Color32::from_rgb(255, 255, 0));
+                hc.widgets.noninteractive.bg_stroke = egui::Stroke::new(2.0, egui::Color32::WHITE);
+                hc.widgets.inactive.bg_stroke = egui::Stroke::new(2.0, egui::Color32::WHITE);
+                hc.widgets.hovered.bg_stroke =
+                    egui::Stroke::new(2.5, egui::Color32::from_rgb(255, 255, 0));
+                hc.widgets.active.bg_stroke =
+                    egui::Stroke::new(2.5, egui::Color32::from_rgb(255, 255, 0));
+                hc.widgets.inactive.bg_fill = egui::Color32::BLACK;
+                hc.widgets.hovered.bg_fill = egui::Color32::from_rgb(30, 30, 0);
+                hc.widgets.active.bg_fill = egui::Color32::from_rgb(50, 50, 0);
+                hc
+            }
+            ThemeMode::HighContrastLight => {
+                let mut hc = egui::Visuals::light();
+                hc.panel_fill = egui::Color32::WHITE;
+                hc.window_fill = egui::Color32::WHITE;
+                hc.extreme_bg_color = egui::Color32::WHITE;
+                hc.widgets.noninteractive.fg_stroke = egui::Stroke::new(1.5, egui::Color32::BLACK);
+                hc.widgets.inactive.fg_stroke = egui::Stroke::new(1.5, egui::Color32::BLACK);
+                hc.widgets.hovered.fg_stroke =
+                    egui::Stroke::new(2.0, egui::Color32::from_rgb(0, 0, 180));
+                hc.widgets.active.fg_stroke =
+                    egui::Stroke::new(2.0, egui::Color32::from_rgb(0, 0, 220));
+                hc.widgets.noninteractive.bg_stroke = egui::Stroke::new(2.0, egui::Color32::BLACK);
+                hc.widgets.inactive.bg_stroke = egui::Stroke::new(2.0, egui::Color32::BLACK);
+                hc.widgets.hovered.bg_stroke =
+                    egui::Stroke::new(2.5, egui::Color32::from_rgb(0, 0, 180));
+                hc.widgets.active.bg_stroke =
+                    egui::Stroke::new(2.5, egui::Color32::from_rgb(0, 0, 220));
+                hc.widgets.inactive.bg_fill = egui::Color32::WHITE;
+                hc.widgets.hovered.bg_fill = egui::Color32::from_rgb(230, 235, 255);
+                hc.widgets.active.bg_fill = egui::Color32::from_rgb(210, 220, 255);
+                hc
+            }
         };
         ctx.set_visuals(visuals);
     }
@@ -235,6 +279,13 @@ impl eframe::App for TemplateApp {
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         self.apply_theme(ui.ctx());
+        if self.state.config.theme.is_high_contrast() {
+            ui.spacing_mut().interact_size = egui::vec2(44.0, 44.0);
+            ui.spacing_mut().button_padding = egui::vec2(14.0, 10.0);
+        } else {
+            ui.spacing_mut().interact_size.y = ui.spacing_mut().interact_size.y.max(32.0);
+            ui.spacing_mut().button_padding = egui::vec2(12.0, 8.0);
+        }
         self.handle_keyboard_shortcuts(ui.ctx());
 
         // Periodic diagnostics poll (every 2 seconds)
@@ -251,8 +302,6 @@ impl eframe::App for TemplateApp {
         components::navbar::render_navbar(self, ui, &constraints);
 
         egui::CentralPanel::default().show(ui, |ui| {
-            components::modals::render_warning_banners(self, ui);
-            ui.add_space(8.0);
             components::item_list::render_summary_cards(self, ui, &constraints);
             ui.add_space(10.0);
             components::item_list::render_new_item_form(self, ui, &constraints);
@@ -261,5 +310,6 @@ impl eframe::App for TemplateApp {
         });
 
         components::modals::render_dialogs(self, ui);
+        components::modals::render_warning_banners(self, ui.ctx());
     }
 }
