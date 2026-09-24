@@ -21,3 +21,11 @@
 - [x] High-contrast Dark/Light theme engine.
 - [x] ScreenConstraints responsive viewport adaptation.
 - [ ] Keyboard navigation shortcuts (full modal and focus traversal).
+
+---
+
+## Phase 4: Mobile Android Deployment (`cargo-ndk`) [ACTIVE]
+- [x] Multi-target toolchain support (`aarch64-linux-android`, `armv7-linux-androideabi`, `x86_64-linux-android`).
+- [x] Native `cdylib` output with `android_main` activity entry point.
+- [x] Automated compilation scripts (`scripts/build-android.ps1`, `scripts/build-android.sh`).
+- [ ] Gradle APK packaging harness and touch input calibration.

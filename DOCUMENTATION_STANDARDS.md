@@ -25,7 +25,20 @@ This template provides a modular architecture for cross-platform desktop and ser
 
 ---
 
-## 3. Verification Checklist
+## 3. Android Mobile Compilation (`cargo-ndk`)
+
+The application supports native Android deployment via `cargo-ndk`:
+- **Targets**: `aarch64-linux-android`, `armv7-linux-androideabi`, `x86_64-linux-android`.
+- **Crate Type**: `crates/app` outputs `cdylib` with `#[no_mangle] fn android_main(app: AndroidApp)`.
+- **Build Execution**:
+  ```bash
+  ./scripts/build-android.ps1 # or ./scripts/build-android.sh
+  ```
+- **Responsive Constraints**: Ensure touch targets are padded to at least 48x48 logical points and UI adapts dynamically via [`ScreenConstraints`].
+
+---
+
+## 4. Verification Checklist
 
 Before opening PRs to `main`:
 - [ ] `cargo clippy --workspace --all-targets -- -D warnings` passes with 0 warnings.

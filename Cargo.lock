@@ -202,6 +202,7 @@ checksum = "940b3a0ca603d1eade50a4846a2afffd5ef57a9feac2c0e2ec2e14f9ead76000"
 name = "app"
 version = "0.1.0"
 dependencies = [
+ "android-activity",
  "base64",
  "bson",
  "eframe",
@@ -217,6 +218,7 @@ dependencies = [
  "tracing-subscriber",
  "wasm-bindgen",
  "web-sys",
+ "winit",
 ]
 
 [[package]]
