@@ -19,6 +19,7 @@ console_error_panic_hook = { workspace = true }
 tracing-web = { workspace = true }
 
 tracing = { workspace = true }
+spodeian-telemetry = { workspace = true }
 app = { workspace = true }
 tracing-subscriber.workspace = true
 
