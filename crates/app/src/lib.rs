@@ -239,3 +239,15 @@ fn android_main(app: winit::platform::android::activity::AndroidApp) {
         Box::new(|cc| Ok(Box::new(TemplateApp::new(cc)))),
     ).unwrap();
 }
+
+#[cfg(target_os = "ios")]
+#[no_mangle]
+pub extern "C" fn ios_main() {
+    use eframe::NativeOptions;
+    let options = NativeOptions::default();
+    let _ = eframe::run_native(
+        "egui Template",
+        options,
+        Box::new(|cc| Ok(Box::new(TemplateApp::new(cc)))),
+    );
+}
