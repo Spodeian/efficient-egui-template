@@ -1,20 +1,21 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use shared::models::{Item, ItemCollection};
-use shared::export::{export_to_json, export_to_csv, export_to_compressed_bson};
+use shared::export::{export_to_compressed_bson, export_to_csv, export_to_json};
+use shared::models::ItemCollection;
 
 fn bench_serialization(c: &mut Criterion) {
     let mut collection = ItemCollection::default();
     for i in 0..100 {
-        collection.add(Item::new(
+        collection.add(
             format!("Item Title {}", i),
             format!("Detailed description for item number {}", i),
-        ));
+            shared::Priority::Medium,
+        );
     }
 
     c.bench_function("export_to_json_100_items", |b| {
         b.iter(|| {
             let res = export_to_json(black_box(&collection));
-            black_box(res);
+            let _ = black_box(res);
         })
     });
 
@@ -28,7 +29,7 @@ fn bench_serialization(c: &mut Criterion) {
     c.bench_function("export_to_compressed_bson_100_items", |b| {
         b.iter(|| {
             let res = export_to_compressed_bson(black_box(&collection));
-            black_box(res);
+            let _ = black_box(res);
         })
     });
 }

@@ -51,6 +51,14 @@ pub fn render_navbar(app: &mut TemplateApp, ui: &mut egui::Ui, constraints: &Scr
                     app.show_help_dialog = true;
                 }
 
+                if ui
+                    .button("Telemetry")
+                    .on_hover_text("View live system performance telemetry & channel metrics")
+                    .clicked()
+                {
+                    app.show_telemetry_modal = true;
+                }
+
                 // Storage diagnostics button
                 let storage_text = match app.storage_diag.is_persisted {
                     Some(true) => {

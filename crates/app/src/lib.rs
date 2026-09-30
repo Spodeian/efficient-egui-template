@@ -52,6 +52,8 @@ pub struct TemplateApp {
     pub search_query: String,
     pub storage_diag: StorageDiagnostics,
     pub show_storage_modal: bool,
+    pub show_telemetry_modal: bool,
+    pub telemetry_data: shared::TelemetryDashboardData,
     pub dismissed_ephemeral_warning: bool,
     pub dismissed_quota_warning: bool,
     pub dismissed_combined_warning: bool,
@@ -79,6 +81,8 @@ impl Default for TemplateApp {
             search_query: String::new(),
             storage_diag: query_storage_diagnostics(),
             show_storage_modal: false,
+            show_telemetry_modal: false,
+            telemetry_data: shared::TelemetryDashboardData::default(),
             dismissed_ephemeral_warning: false,
             dismissed_quota_warning: false,
             dismissed_combined_warning: false,
@@ -156,6 +160,8 @@ impl TemplateApp {
                 self.show_reset_dialog = false;
             } else if self.show_storage_modal {
                 self.show_storage_modal = false;
+            } else if self.show_telemetry_modal {
+                self.show_telemetry_modal = false;
             } else if self.show_export_dialog.is_some() {
                 self.show_export_dialog = None;
                 self.export_text_buffer.clear();
@@ -217,6 +223,7 @@ impl eframe::App for TemplateApp {
 
         components::modals::render_dialogs(self, ui);
         components::modals::render_warning_banners(self, ui.ctx());
+        components::telemetry_viewer::render_telemetry_modal(self, ui.ctx());
     }
 }
 

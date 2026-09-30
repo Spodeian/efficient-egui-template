@@ -132,3 +132,14 @@ fn test_template_app_save_populates_both_keys() {
     let loaded = load_state_multi_tier(Some(&storage)).expect("Should restore state successfully");
     assert_eq!(loaded.collection.total_count(), 4);
 }
+
+#[test]
+fn test_template_app_telemetry_modal_and_data() {
+    let mut app = TemplateApp::default();
+    assert!(!app.show_telemetry_modal);
+    assert!(app.telemetry_data.success_rate > 99.0);
+    assert_eq!(app.telemetry_data.channels.len(), 3);
+
+    app.show_telemetry_modal = true;
+    assert!(app.show_telemetry_modal);
+}

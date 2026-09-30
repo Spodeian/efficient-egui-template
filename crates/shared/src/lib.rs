@@ -4,9 +4,11 @@ use serde::{Deserialize, Serialize};
 
 pub mod export;
 pub mod models;
+pub mod telemetry;
 
 pub use export::*;
 pub use models::*;
+pub use telemetry::*;
 
 pub use spodeian_tokens::ThemeMode;
 
