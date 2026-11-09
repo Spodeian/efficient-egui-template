@@ -1,6 +1,7 @@
 //! Native desktop application runner for the Serverless & Desktop Template.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+#[cfg(not(any(target_arch = "wasm32", target_os = "android", target_os = "ios")))]
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
@@ -16,14 +17,14 @@ fn main() -> eframe::Result<()> {
     // Native window viewport configurations
     let options = NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_title("Serverless & Desktop Template")
+            .with_title("Serverless & Desktop egui Template")
             .with_inner_size([1100.0, 750.0])
             .with_min_inner_size([700.0, 500.0]),
         ..Default::default()
     };
 
     eframe::run_native(
-        "Serverless & Desktop Template",
+        "Serverless & Desktop egui Template",
         options,
         Box::new(|cc| Ok(Box::new(TemplateApp::new(cc)))),
     )

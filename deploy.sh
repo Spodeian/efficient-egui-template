@@ -110,21 +110,19 @@ fi
 # Run wasm-opt pass on generated wasm artifact with bulk memory, reference-types, and performance optimizations
 WASM_OPT_FLAGS=(
     "-Oz"
-    "--enable-simd"
     "--enable-bulk-memory"
     "--enable-bulk-memory-opt"
     "--enable-mutable-globals"
     "--enable-sign-ext"
     "--enable-nontrapping-float-to-int"
     "--enable-reference-types"
-    "--enable-multivalue"
 )
 
 if [ -x "$WASM_OPT_BIN" ] || command -v wasm-opt &> /dev/null; then
     for wasm_file in "$DIST_DIR"/*.wasm; do
         if [ -f "$wasm_file" ]; then
             echo "Optimizing WASM with wasm-opt (reference-types, bulk-memory, fast math): $wasm_file"
-            "$WASM_OPT_BIN" "${WASM_OPT_FLAGS[@]}" "$wasm_file" -o "$wasm_file" || "$WASM_OPT_BIN" -Oz --enable-simd "$wasm_file" -o "$wasm_file" || true
+            "$WASM_OPT_BIN" "${WASM_OPT_FLAGS[@]}" "$wasm_file" -o "$wasm_file" || "$WASM_OPT_BIN" -Oz "$wasm_file" -o "$wasm_file" || true
         fi
     done
 fi
