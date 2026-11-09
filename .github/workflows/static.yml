@@ -82,7 +82,15 @@ jobs:
           for wasm_file in crates/web/dist/*.wasm; do
             if [ -f "$wasm_file" ]; then
               echo "Optimizing $wasm_file with wasm-opt"
-              wasm-opt -Oz --enable-bulk-memory --enable-mutable-globals --enable-sign-ext --enable-nontrapping-float-to-int "$wasm_file" -o "$wasm_file" || true
+              wasm-opt -Oz \
+                --enable-bulk-memory \
+                --enable-mutable-globals \
+                --enable-sign-ext \
+                --enable-nontrapping-float-to-int \
+                --enable-reference-types \
+                --strip-debug \
+                --strip-producers \
+                "$wasm_file" -o "$wasm_file" || true
             fi
           done
 
