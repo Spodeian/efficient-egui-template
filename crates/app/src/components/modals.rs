@@ -3,8 +3,7 @@
 use crate::{ExportFormat, TemplateApp, storage_manager::*};
 use eframe::egui;
 use shared::{
-    export_to_compressed_bson, import_from_compressed_bson, import_from_csv,
-    import_from_json,
+    export_to_compressed_bson, import_from_compressed_bson, import_from_csv, import_from_json,
 };
 
 pub fn render_warning_banners(app: &mut TemplateApp, ctx: &egui::Context) {
@@ -57,9 +56,7 @@ pub fn render_warning_banners(app: &mut TemplateApp, ctx: &egui::Context) {
                                     .with_main_align(egui::Align::Center),
                                 |ui| {
                                     if ui.button("Save .bson Backup").clicked() {
-                                        if let Ok(bytes) =
-                                            export_to_compressed_bson(&app.state)
-                                        {
+                                        if let Ok(bytes) = export_to_compressed_bson(&app.state) {
                                             trigger_binary_download(
                                                 "data_backup.bson",
                                                 &bytes,
@@ -211,8 +208,7 @@ pub fn render_dialogs(app: &mut TemplateApp, ui: &mut egui::Ui) {
                                 );
                             }
                             ExportFormat::Bson => {
-                                if let Ok(bytes) = export_to_compressed_bson(&app.state)
-                                {
+                                if let Ok(bytes) = export_to_compressed_bson(&app.state) {
                                     trigger_binary_download(
                                         "data_backup.bson",
                                         &bytes,

@@ -6,9 +6,9 @@ use spodeian_cache::ContentAddressedStorage;
 use spodeian_cache::PreferentialRouter;
 #[allow(unused_imports)]
 use spodeian_cache::StorageTier;
+use thiserror::Error;
 #[allow(unused_imports)]
 use tracing::{error, info, warn};
-use thiserror::Error;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsCast;
