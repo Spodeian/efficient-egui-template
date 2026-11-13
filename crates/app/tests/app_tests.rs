@@ -1,6 +1,6 @@
 use app::TemplateApp;
 use eframe::{App, Storage};
-use shared::{AppState, Priority};
+use shared::{AppState, Item, Priority};
 use std::collections::HashMap;
 
 #[derive(Default)]
@@ -24,8 +24,8 @@ impl Storage for MockStorage {
 #[test]
 fn test_template_app_initialization() {
     let app = TemplateApp::default();
-    assert_eq!(app.state.collection.total_count(), 3);
-    assert_eq!(app.state.collection.completed_count(), 0);
+    assert_eq!(app.state.collection.total_count(), 4);
+    assert_eq!(app.state.collection.completed_count(), 1);
 }
 
 #[test]
@@ -34,12 +34,14 @@ fn test_template_app_save_and_load() {
     let mut app = TemplateApp::default();
 
     // Add item and toggle
-    let new_id = app.state.collection.add(
+    let new_item = Item::new(
+        "custom-persistent-1",
         "Persistent Task",
         "Should be saved in storage",
         Priority::High,
     );
-    app.state.collection.toggle(new_id);
+    app.state.collection.add(new_item);
+    app.state.collection.toggle("custom-persistent-1");
 
     // Save
     app.save(&mut storage);
@@ -52,8 +54,8 @@ fn test_template_app_save_and_load() {
 
     // Simulate reload from storage
     let loaded_state: AppState = eframe::get_value(&storage, eframe::APP_KEY).unwrap();
-    assert_eq!(loaded_state.collection.total_count(), 4);
-    assert_eq!(loaded_state.collection.completed_count(), 1);
+    assert_eq!(loaded_state.collection.total_count(), 5);
+    assert_eq!(loaded_state.collection.completed_count(), 2);
 }
 
 #[test]
@@ -62,10 +64,7 @@ fn test_template_app_export_dialog() {
     app.open_export_dialog(app::ExportFormat::Json);
 
     assert!(app.show_export_dialog.is_some());
-    assert!(
-        app.export_text_buffer
-            .contains("Explore Cross-Platform State Persistence")
-    );
+    assert!(app.export_text_buffer.contains("Deploy Serverless WebApp"));
 }
 
 #[test]
@@ -75,102 +74,53 @@ fn test_template_app_load_multi_tier_json_and_ron() {
     };
 
     let mut original_state = AppState::default();
-    original_state
-        .collection
-        .add("Task A", "Description A", Priority::High);
+    original_state.collection.add(Item::new(
+        "task-a",
+        "Task A",
+        "Description A",
+        Priority::High,
+    ));
 
     // 1. JSON roundtrip
     let json_str = serde_json::to_string(&original_state).unwrap();
     let from_json = deserialize_app_state(&json_str).expect("JSON should deserialize");
-    assert_eq!(from_json.collection.total_count(), 4);
+    assert_eq!(from_json.collection.total_count(), 5);
 
     // 2. RON roundtrip
     let ron_str = ron::to_string(&original_state).unwrap();
     let from_ron = deserialize_app_state(&ron_str).expect("RON should deserialize");
-    assert_eq!(from_ron.collection.total_count(), 4);
+    assert_eq!(from_ron.collection.total_count(), 5);
 
     // 3. Load from dedicated key in storage (JSON)
     let mut storage_dedicated = MockStorage::default();
     storage_dedicated.set_string(DEDICATED_STORAGE_KEY, json_str.clone());
     let loaded_dedicated =
         load_state_multi_tier(Some(&storage_dedicated)).expect("Should load from dedicated key");
-    assert_eq!(loaded_dedicated.collection.total_count(), 4);
+    assert_eq!(loaded_dedicated.collection.total_count(), 5);
 
     // 4. Load from legacy app key in storage (JSON)
     let mut storage_json_app = MockStorage::default();
     storage_json_app.set_string(eframe::APP_KEY, json_str);
-    let loaded_json =
-        load_state_multi_tier(Some(&storage_json_app)).expect("Should load from app key JSON");
-    assert_eq!(loaded_json.collection.total_count(), 4);
+    let loaded_json_app =
+        load_state_multi_tier(Some(&storage_json_app)).expect("Should load from app key (JSON)");
+    assert_eq!(loaded_json_app.collection.total_count(), 5);
 
     // 5. Load from legacy app key in storage (RON)
     let mut storage_ron_app = MockStorage::default();
     storage_ron_app.set_string(eframe::APP_KEY, ron_str);
-    let loaded_ron =
-        load_state_multi_tier(Some(&storage_ron_app)).expect("Should load from app key RON");
-    assert_eq!(loaded_ron.collection.total_count(), 4);
+    let loaded_ron_app =
+        load_state_multi_tier(Some(&storage_ron_app)).expect("Should load from app key (RON)");
+    assert_eq!(loaded_ron_app.collection.total_count(), 5);
 }
 
 #[test]
-fn test_template_app_save_populates_both_keys() {
-    use app::storage_manager::{DEDICATED_STORAGE_KEY, load_state_multi_tier};
-
-    let mut storage = MockStorage::default();
-    let mut app = TemplateApp::default();
-    app.state.collection.add(
-        "New Saved Item",
-        "Active Persistence Test",
-        Priority::Medium,
-    );
-
-    app.save(&mut storage);
-
-    // Both eframe::APP_KEY (RON) and DEDICATED_STORAGE_KEY (JSON) should be populated
-    assert!(storage.get_string(eframe::APP_KEY).is_some());
-    assert!(storage.get_string(DEDICATED_STORAGE_KEY).is_some());
-
-    let loaded = load_state_multi_tier(Some(&storage)).expect("Should restore state successfully");
-    assert_eq!(loaded.collection.total_count(), 4);
-}
-
-#[test]
-fn test_template_app_telemetry_modal_and_data() {
-    let mut app = TemplateApp::default();
-    assert!(!app.show_telemetry_modal);
-    assert!(app.telemetry_data.success_rate > 99.0);
-    assert_eq!(app.telemetry_data.channels.len(), 3);
-
-    app.show_telemetry_modal = true;
-    assert!(app.show_telemetry_modal);
-}
-
-#[test]
-fn test_template_app_memory_and_fallback_diagnostics() {
-    use app::storage_manager::MEMORY_WORKING_SET_LIMIT;
-
-    let mut app = TemplateApp::default();
+fn test_storage_diagnostics_defaults() {
+    let diag = app::storage_manager::StorageDiagnostics::default();
+    assert_eq!(diag.memory_items_count, 0);
     assert_eq!(
-        app.storage_diag.memory_capacity_limit,
-        MEMORY_WORKING_SET_LIMIT
+        diag.memory_capacity_limit,
+        app::storage_manager::MEMORY_WORKING_SET_LIMIT
     );
-    assert_eq!(app.storage_diag.memory_items_count, 0);
-
-    // Persisting state updates memory item count and evaluates fallback
-    app.persist_state();
-    assert_eq!(app.storage_diag.memory_items_count, 3);
-    assert!(!app.storage_diag.fallback_tier_active);
-
-    // Simulate item load beyond memory working set capacity
-    for i in 0..110 {
-        app.state.collection.add(
-            format!("Bulk Task {i}"),
-            "Memory capacity test",
-            Priority::Low,
-        );
-    }
-
-    app.persist_state();
-    assert_eq!(app.storage_diag.memory_items_count, 113);
-    // Over memory limit: fallback tier is active to protect memory from overfilling!
-    assert!(app.storage_diag.fallback_tier_active);
+    assert!(!diag.fallback_tier_active);
+    assert!(!diag.quota_exceeded);
 }

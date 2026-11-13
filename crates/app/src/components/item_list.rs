@@ -2,7 +2,7 @@
 
 use crate::{ScreenConstraints, TemplateApp};
 use eframe::egui;
-use shared::Priority;
+use shared::{Item, Priority};
 
 pub fn render_summary_cards(
     app: &mut TemplateApp,
@@ -105,6 +105,11 @@ pub fn render_new_item_form(
                                     Priority::High,
                                     "High",
                                 );
+                                ui.selectable_value(
+                                    &mut app.new_item_priority,
+                                    Priority::Critical,
+                                    "Critical",
+                                );
                             });
 
                         if ui.button("➕ Add Item").clicked() {
@@ -140,6 +145,11 @@ pub fn render_new_item_form(
                                 "Medium",
                             );
                             ui.selectable_value(&mut app.new_item_priority, Priority::High, "High");
+                            ui.selectable_value(
+                                &mut app.new_item_priority,
+                                Priority::Critical,
+                                "Critical",
+                            );
                         });
 
                     if ui.button("➕ Add Item").clicked() {
@@ -149,13 +159,20 @@ pub fn render_new_item_form(
             }
 
             if submit_new_item && !app.new_item_title.trim().is_empty() {
-                app.state.collection.add(
-                    app.new_item_title.trim(),
-                    app.new_item_description.trim(),
-                    app.new_item_priority,
-                );
+                let now = current_timestamp_ms();
+                let id = format!("item-{}", now);
+                let item = Item {
+                    id,
+                    title: app.new_item_title.trim().to_string(),
+                    description: app.new_item_description.trim().to_string(),
+                    priority: app.new_item_priority,
+                    completed: false,
+                    created_at: now,
+                };
+                app.state.collection.add(item);
                 app.new_item_title.clear();
                 app.new_item_description.clear();
+                app.new_item_priority = Priority::Medium;
                 app.persist_state();
             }
         });
@@ -185,6 +202,11 @@ pub fn render_item_list(app: &mut TemplateApp, ui: &mut egui::Ui, constraints: &
                     ui.selectable_value(&mut app.filter_priority, Some(Priority::Low), "Low");
                     ui.selectable_value(&mut app.filter_priority, Some(Priority::Medium), "Medium");
                     ui.selectable_value(&mut app.filter_priority, Some(Priority::High), "High");
+                    ui.selectable_value(
+                        &mut app.filter_priority,
+                        Some(Priority::Critical),
+                        "Critical",
+                    );
                 });
 
             ui.add(
@@ -247,7 +269,7 @@ pub fn render_item_list(app: &mut TemplateApp, ui: &mut egui::Ui, constraints: &
                         ui.horizontal(|ui| {
                             let mut checked = item.completed;
                             if ui.checkbox(&mut checked, "").clicked() {
-                                item_ids_to_toggle.push(item.id);
+                                item_ids_to_toggle.push(item.id.clone());
                             }
 
                             ui.vertical(|ui| {
@@ -272,11 +294,12 @@ pub fn render_item_list(app: &mut TemplateApp, ui: &mut egui::Ui, constraints: &
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
                                     if ui.button("Delete").on_hover_text("Delete item").clicked() {
-                                        item_ids_to_remove.push(item.id);
+                                        item_ids_to_remove.push(item.id.clone());
                                     }
 
                                     let badge_color = match item.priority {
-                                        Priority::High => egui::Color32::from_rgb(220, 70, 70),
+                                        Priority::Critical => egui::Color32::from_rgb(230, 60, 60),
+                                        Priority::High => egui::Color32::from_rgb(220, 90, 70),
                                         Priority::Medium => egui::Color32::from_rgb(230, 140, 50),
                                         Priority::Low => egui::Color32::from_rgb(100, 140, 180),
                                     };
@@ -294,14 +317,29 @@ pub fn render_item_list(app: &mut TemplateApp, ui: &mut egui::Ui, constraints: &
 
     let mut collection_changed = false;
     for id in item_ids_to_toggle {
-        app.state.collection.toggle(id);
+        app.state.collection.toggle(&id);
         collection_changed = true;
     }
     for id in item_ids_to_remove {
-        app.state.collection.remove(id);
+        app.state.collection.remove(&id);
         collection_changed = true;
     }
     if collection_changed {
         app.persist_state();
+    }
+}
+
+fn current_timestamp_ms() -> u64 {
+    #[cfg(target_arch = "wasm32")]
+    {
+        js_sys::Date::now() as u64
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0)
     }
 }

@@ -1,13 +1,17 @@
-//! Domain entities and collection management logic.
+//! Core domain entities, priorities, and collection management logic.
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub use spodeian_tokens::ThemeMode;
+
+/// Task item priority level.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub enum Priority {
     Low,
     #[default]
     Medium,
     High,
+    Critical,
 }
 
 impl Priority {
@@ -16,93 +20,113 @@ impl Priority {
             Self::Low => "Low",
             Self::Medium => "Medium",
             Self::High => "High",
+            Self::Critical => "Critical",
+        }
+    }
+
+    pub fn badge_class(self) -> &'static str {
+        match self {
+            Self::Low => "priority-low",
+            Self::Medium => "priority-medium",
+            Self::High => "priority-high",
+            Self::Critical => "priority-critical",
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+/// Core domain item.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Item {
-    pub id: u64,
+    pub id: String,
     pub title: String,
     pub description: String,
     pub priority: Priority,
     pub completed: bool,
+    #[serde(default)]
+    pub created_at: u64,
 }
 
 impl Item {
     pub fn new(
-        id: u64,
+        id: impl Into<String>,
         title: impl Into<String>,
         description: impl Into<String>,
         priority: Priority,
     ) -> Self {
         Self {
-            id,
+            id: id.into(),
             title: title.into(),
             description: description.into(),
             priority,
             completed: false,
+            created_at: 0,
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+/// Collection wrapper for item operations and metrics.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ItemCollection {
     pub items: Vec<Item>,
-    pub next_id: u64,
 }
 
 impl Default for ItemCollection {
     fn default() -> Self {
-        let mut collection = Self {
-            items: Vec::new(),
-            next_id: 1,
-        };
-        collection.load_samples();
-        collection
+        Self::with_sample_data()
     }
 }
 
 impl ItemCollection {
-    pub fn load_samples(&mut self) {
-        self.items = vec![
-            Item::new(
-                1,
-                "Explore Cross-Platform State Persistence",
-                "State is automatically saved across browser sessions and desktop restarts.",
-                Priority::High,
-            ),
-            Item::new(
-                2,
-                "Test Theme Toggle",
-                "Switch between dark and warm light modes with high contrast readability.",
-                Priority::Medium,
-            ),
-            Item::new(
-                3,
-                "Verify Offline PWA Capabilities",
-                "Service workers cache static assets for offline usage on mobile and web.",
-                Priority::Low,
-            ),
-        ];
-        self.next_id = 4;
+    pub fn new() -> Self {
+        Self { items: Vec::new() }
     }
 
-    pub fn add(
-        &mut self,
-        title: impl Into<String>,
-        description: impl Into<String>,
-        priority: Priority,
-    ) -> u64 {
-        let id = self.next_id;
-        self.next_id += 1;
-        self.items.push(Item::new(id, title, description, priority));
-        id
+    pub fn with_sample_data() -> Self {
+        Self {
+            items: vec![
+                Item {
+                    id: "item-1".to_string(),
+                    title: "Deploy Serverless WebApp".to_string(),
+                    description: "Publish high-performance WASM application directly to Cloudflare Pages or GitHub Pages".to_string(),
+                    priority: Priority::Critical,
+                    completed: false,
+                    created_at: 1,
+                },
+                Item {
+                    id: "item-2".to_string(),
+                    title: "Configure Native Desktop".to_string(),
+                    description: "Verify cross-platform native desktop compilation and local asset loading".to_string(),
+                    priority: Priority::High,
+                    completed: false,
+                    created_at: 2,
+                },
+                Item {
+                    id: "item-3".to_string(),
+                    title: "Verify Offline PWA Caching".to_string(),
+                    description: "Check Service Worker caching strategy for offline web support".to_string(),
+                    priority: Priority::Medium,
+                    completed: true,
+                    created_at: 3,
+                },
+                Item {
+                    id: "item-4".to_string(),
+                    title: "Test Data Interchange".to_string(),
+                    description: "Import and export data via formatted JSON, RFC 4180 CSV, and compressed BSON".to_string(),
+                    priority: Priority::Low,
+                    completed: false,
+                    created_at: 4,
+                },
+            ],
+        }
     }
 
-    pub fn remove(&mut self, id: u64) -> bool {
-        if let Some(pos) = self.items.iter().position(|item| item.id == id) {
+    pub fn add(&mut self, item: Item) {
+        self.items.push(item);
+    }
+
+    pub fn remove(&mut self, id: &str) -> bool {
+        if let Some(pos) = self.items.iter().position(|i| i.id == id) {
             self.items.remove(pos);
             true
         } else {
@@ -110,34 +134,109 @@ impl ItemCollection {
         }
     }
 
-    pub fn toggle(&mut self, id: u64) {
-        if let Some(item) = self.items.iter_mut().find(|item| item.id == id) {
+    pub fn toggle(&mut self, id: &str) {
+        if let Some(item) = self.items.iter_mut().find(|i| i.id == id) {
             item.completed = !item.completed;
         }
     }
 
+    pub fn toggle_completed(&mut self, id: &str) {
+        self.toggle(id);
+    }
+
     pub fn clear_completed(&mut self) {
-        self.items.retain(|item| !item.completed);
+        self.items.retain(|i| !i.completed);
     }
 
     pub fn reset(&mut self) {
         self.items.clear();
-        self.next_id = 1;
-    }
-
-    pub fn completed_count(&self) -> usize {
-        self.items.iter().filter(|i| i.completed).count()
     }
 
     pub fn total_count(&self) -> usize {
         self.items.len()
     }
 
+    pub fn completed_count(&self) -> usize {
+        self.items.iter().filter(|i| i.completed).count()
+    }
+
+    pub fn pending_count(&self) -> usize {
+        self.items.iter().filter(|i| !i.completed).count()
+    }
+
     pub fn completion_ratio(&self) -> f32 {
         if self.items.is_empty() {
             0.0
         } else {
-            self.completed_count() as f32 / self.items.len() as f32
+            self.completed_count() as f32 / self.total_count() as f32
         }
+    }
+
+    pub fn high_priority_count(&self) -> usize {
+        self.items
+            .iter()
+            .filter(|i| !i.completed && matches!(i.priority, Priority::High | Priority::Critical))
+            .count()
+    }
+}
+
+/// Active application view page.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum AppPage {
+    #[default]
+    Dashboard,
+    About,
+}
+
+impl AppPage {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Dashboard => "Dashboard",
+            Self::About => "About",
+        }
+    }
+}
+
+/// Global application configuration.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct AppConfig {
+    pub theme: ThemeMode,
+    pub active_page: AppPage,
+    pub auto_save: bool,
+    pub show_completed: bool,
+    pub filter_priority: Option<Priority>,
+    pub search_query: String,
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            theme: ThemeMode::Dark,
+            active_page: AppPage::Dashboard,
+            auto_save: true,
+            show_completed: true,
+            filter_priority: None,
+            search_query: String::new(),
+        }
+    }
+}
+
+/// Root state container.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct AppState {
+    pub collection: ItemCollection,
+    pub config: AppConfig,
+}
+
+impl AppState {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Resets app domain data while preserving configuration preferences like theme.
+    pub fn reset_data(&mut self) {
+        self.collection.reset();
     }
 }

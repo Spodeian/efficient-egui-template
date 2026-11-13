@@ -1,0 +1,143 @@
+use shared::{
+    AppPage, AppState, Item, ItemCollection, Priority, ThemeMode, export_to_compressed_bson,
+    export_to_csv, export_to_json, import_from_compressed_bson, import_from_csv, import_from_json,
+};
+
+#[test]
+fn test_priority_levels_and_labels() {
+    assert_eq!(Priority::Low.label(), "Low");
+    assert_eq!(Priority::Medium.label(), "Medium");
+    assert_eq!(Priority::High.label(), "High");
+    assert_eq!(Priority::Critical.label(), "Critical");
+
+    assert_eq!(Priority::Low.badge_class(), "priority-low");
+    assert_eq!(Priority::Medium.badge_class(), "priority-medium");
+    assert_eq!(Priority::High.badge_class(), "priority-high");
+    assert_eq!(Priority::Critical.badge_class(), "priority-critical");
+}
+
+#[test]
+fn test_theme_mode_toggle() {
+    let theme = ThemeMode::Dark;
+    assert!(theme.is_dark());
+    let toggled = theme.toggle();
+    assert_eq!(toggled, ThemeMode::Light);
+    assert!(!toggled.is_dark());
+}
+
+#[test]
+fn test_item_collection_operations() {
+    let mut collection = ItemCollection::new();
+    assert_eq!(collection.total_count(), 0);
+    assert_eq!(collection.completion_ratio(), 0.0);
+
+    let item = Item::new("test-1", "Test Title", "Test Description", Priority::High);
+    collection.add(item);
+    assert_eq!(collection.total_count(), 1);
+    assert_eq!(collection.pending_count(), 1);
+    assert_eq!(collection.completed_count(), 0);
+    assert_eq!(collection.high_priority_count(), 1);
+    assert_eq!(collection.completion_ratio(), 0.0);
+
+    collection.toggle("test-1");
+    assert_eq!(collection.completed_count(), 1);
+    assert_eq!(collection.pending_count(), 0);
+    assert_eq!(collection.high_priority_count(), 0);
+    assert_eq!(collection.completion_ratio(), 1.0);
+
+    let item2 = Item::new(
+        "test-2",
+        "Critical Bug",
+        "Must fix immediately",
+        Priority::Critical,
+    );
+    collection.add(item2);
+    assert_eq!(collection.total_count(), 2);
+    assert_eq!(collection.high_priority_count(), 1);
+
+    collection.clear_completed();
+    assert_eq!(collection.total_count(), 1);
+    assert_eq!(collection.items[0].id, "test-2");
+
+    assert!(collection.remove("test-2"));
+    assert_eq!(collection.total_count(), 0);
+}
+
+#[test]
+fn test_json_roundtrip_full_state() {
+    let state = AppState::new();
+    let json_str = export_to_json(&state).expect("Export JSON failed");
+    let imported: AppState = import_from_json(&json_str).expect("Import JSON failed");
+    assert_eq!(state, imported);
+}
+
+#[test]
+fn test_json_roundtrip_collection_fallback() {
+    let collection = ItemCollection::with_sample_data();
+    let json_str = serde_json::to_string_pretty(&collection).expect("Serialize collection failed");
+    let imported: AppState = import_from_json(&json_str).expect("Import JSON fallback failed");
+    assert_eq!(imported.collection.total_count(), collection.total_count());
+}
+
+#[test]
+fn test_bson_roundtrip() {
+    let state = AppState::new();
+    let bytes = export_to_compressed_bson(&state).expect("Export BSON failed");
+    assert!(!bytes.is_empty());
+    let imported: AppState = import_from_compressed_bson(&bytes).expect("Import BSON failed");
+    assert_eq!(
+        state.collection.items.len(),
+        imported.collection.items.len()
+    );
+}
+
+#[test]
+fn test_backward_compatibility() {
+    let legacy_json = r#"{"collection":{"items":[]},"config":{}}"#;
+    let imported: Result<AppState, _> = serde_json::from_str(legacy_json);
+    assert!(imported.is_ok());
+    let state = imported.unwrap();
+    assert_eq!(state.config.active_page, AppPage::Dashboard);
+}
+
+#[test]
+fn test_csv_roundtrip() {
+    let collection = ItemCollection::with_sample_data();
+    let csv_str = export_to_csv(&collection).expect("Export CSV failed");
+    let imported = import_from_csv(&csv_str).expect("Import CSV failed");
+    assert_eq!(collection.items.len(), imported.items.len());
+    for (orig, imp) in collection.items.iter().zip(imported.items.iter()) {
+        assert_eq!(orig.id, imp.id);
+        assert_eq!(orig.title, imp.title);
+        assert_eq!(orig.description, imp.description);
+        assert_eq!(orig.priority, imp.priority);
+        assert_eq!(orig.completed, imp.completed);
+    }
+}
+
+#[test]
+fn test_reset_data() {
+    let mut state = AppState::new();
+    assert!(!state.collection.items.is_empty());
+    state.config.theme = ThemeMode::Light;
+
+    state.reset_data();
+    assert!(state.collection.items.is_empty());
+    assert_eq!(state.collection.total_count(), 0);
+    // Preserves configuration
+    assert_eq!(state.config.theme, ThemeMode::Light);
+}
+
+#[test]
+fn test_app_page_routing() {
+    let mut state = AppState::new();
+    assert_eq!(state.config.active_page, AppPage::Dashboard);
+    assert_eq!(state.config.active_page.label(), "Dashboard");
+
+    state.config.active_page = AppPage::About;
+    assert_eq!(state.config.active_page.label(), "About");
+
+    let serialized = serde_json::to_string(&state).expect("Serialization failed");
+    let deserialized: AppState = serde_json::from_str(&serialized).expect("Deserialization failed");
+    assert_eq!(deserialized.config.active_page, AppPage::About);
+}

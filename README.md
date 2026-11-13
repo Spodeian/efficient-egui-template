@@ -190,7 +190,7 @@ The compiled release executable will be located in `target/release/`.
 | Test Suite | Location | Purpose |
 |---|---|---|
 | **App Tests** | `crates/app/tests/app_tests.rs` | UI initialization, dialog state, multi-tier JSON/RON persistence |
-| **Model Tests** | `crates/shared/tests/models_tests.rs` | Collection logic, JSON/CSV/BSON roundtrip, backward compatibility, page routing |
+| **Shared Model Tests** | `crates/shared/tests/shared_tests.rs` | Collection logic, JSON/CSV/BSON roundtrip, backward compatibility, page routing |
 | **Desktop Smoke** | `crates/desktop/tests/smoke_tests.rs` | Desktop native options and viewport validation |
 | **Web Smoke** | `crates/web/tests/smoke_tests.rs` | WebRunner app construction and wasm compatibility |
 | **WASM Browser Tests** | `crates/web/tests/wasm_tests.rs` | Headless Chrome/Firefox DOM and localStorage persistence tests |

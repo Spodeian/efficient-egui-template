@@ -3,8 +3,7 @@
 use crate::{ExportFormat, TemplateApp, storage_manager::*};
 use eframe::egui;
 use shared::{
-    ItemCollection, export_to_compressed_bson, import_from_compressed_bson, import_from_csv,
-    import_from_json,
+    export_to_compressed_bson, import_from_compressed_bson, import_from_csv, import_from_json,
 };
 
 pub fn render_warning_banners(app: &mut TemplateApp, ctx: &egui::Context) {
@@ -57,9 +56,7 @@ pub fn render_warning_banners(app: &mut TemplateApp, ctx: &egui::Context) {
                                     .with_main_align(egui::Align::Center),
                                 |ui| {
                                     if ui.button("Save .bson Backup").clicked() {
-                                        if let Ok(bytes) =
-                                            export_to_compressed_bson(&app.state.collection)
-                                        {
+                                        if let Ok(bytes) = export_to_compressed_bson(&app.state) {
                                             trigger_binary_download(
                                                 "data_backup.bson",
                                                 &bytes,
@@ -161,7 +158,7 @@ pub fn render_dialogs(app: &mut TemplateApp, ui: &mut egui::Ui) {
                 ui.add_space(12.0);
                 ui.horizontal(|ui| {
                     if ui.button("Yes, Reset").clicked() {
-                        app.state.collection = ItemCollection::default();
+                        app.state.reset_data();
                         app.show_reset_dialog = false;
                         app.persist_state();
                     }
@@ -211,8 +208,7 @@ pub fn render_dialogs(app: &mut TemplateApp, ui: &mut egui::Ui) {
                                 );
                             }
                             ExportFormat::Bson => {
-                                if let Ok(bytes) = export_to_compressed_bson(&app.state.collection)
-                                {
+                                if let Ok(bytes) = export_to_compressed_bson(&app.state) {
                                     trigger_binary_download(
                                         "data_backup.bson",
                                         &bytes,
@@ -272,9 +268,9 @@ pub fn render_dialogs(app: &mut TemplateApp, ui: &mut egui::Ui) {
                             app.import_result_message = Some(Err("Input is empty.".to_string()));
                         } else if input.starts_with('{') {
                             match import_from_json(input) {
-                                Ok(col) => {
-                                    let count = col.total_count();
-                                    app.state.collection = col;
+                                Ok(state) => {
+                                    let count = state.collection.total_count();
+                                    app.state = state;
                                     app.import_result_message = Some(Ok(format!(
                                         "Successfully imported {} items from JSON!",
                                         count
@@ -290,9 +286,9 @@ pub fn render_dialogs(app: &mut TemplateApp, ui: &mut egui::Ui) {
                             input,
                         ) {
                             match import_from_compressed_bson(&decoded_bytes) {
-                                Ok(col) => {
-                                    let count = col.total_count();
-                                    app.state.collection = col;
+                                Ok(state) => {
+                                    let count = state.collection.total_count();
+                                    app.state = state;
                                     app.import_result_message = Some(Ok(format!(
                                         "Successfully imported {} items from compressed BSON!",
                                         count
@@ -466,7 +462,7 @@ pub fn render_storage_modal(app: &mut TemplateApp, ui: &mut egui::Ui) {
                     .on_hover_text("Download compact, offline state backup (.bson)")
                     .clicked()
                 {
-                    if let Ok(bytes) = export_to_compressed_bson(&app.state.collection) {
+                    if let Ok(bytes) = export_to_compressed_bson(&app.state) {
                         trigger_binary_download(
                             "data_backup.bson",
                             &bytes,

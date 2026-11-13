@@ -134,15 +134,15 @@ impl TemplateApp {
 
     pub fn open_export_dialog(&mut self, format: ExportFormat) {
         if format == ExportFormat::Bson {
-            if let Ok(bytes) = export_to_compressed_bson(&self.state.collection) {
+            if let Ok(bytes) = export_to_compressed_bson(&self.state) {
                 use base64::{Engine as _, engine::general_purpose};
                 self.export_text_buffer = general_purpose::STANDARD.encode(&bytes);
                 trigger_binary_download("data_backup.bson", &bytes, "application/octet-stream");
             }
         } else {
             self.export_text_buffer = match format {
-                ExportFormat::Json => export_to_json(&self.state.collection).unwrap_or_default(),
-                ExportFormat::Csv => export_to_csv(&self.state.collection),
+                ExportFormat::Json => export_to_json(&self.state).unwrap_or_default(),
+                ExportFormat::Csv => export_to_csv(&self.state.collection).unwrap_or_default(),
                 ExportFormat::Bson => unreachable!(),
             };
         }

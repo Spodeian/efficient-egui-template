@@ -110,23 +110,35 @@ fi
 # Run wasm-opt pass on generated wasm artifact with bulk memory, reference-types, and performance optimizations
 WASM_OPT_FLAGS=(
     "-Oz"
-    "--enable-simd"
     "--enable-bulk-memory"
     "--enable-bulk-memory-opt"
     "--enable-mutable-globals"
     "--enable-sign-ext"
     "--enable-nontrapping-float-to-int"
     "--enable-reference-types"
-    "--enable-multivalue"
+    "--strip-debug"
+    "--strip-producers"
 )
 
 if [ -x "$WASM_OPT_BIN" ] || command -v wasm-opt &> /dev/null; then
+    WASM_OPT_EXEC="${WASM_OPT_BIN:-wasm-opt}"
     for wasm_file in "$DIST_DIR"/*.wasm; do
         if [ -f "$wasm_file" ]; then
-            echo "Optimizing WASM with wasm-opt (reference-types, bulk-memory, fast math): $wasm_file"
-            "$WASM_OPT_BIN" "${WASM_OPT_FLAGS[@]}" "$wasm_file" -o "$wasm_file" || "$WASM_OPT_BIN" -Oz --enable-simd "$wasm_file" -o "$wasm_file" || true
+            ORIG_SIZE=$(stat -c%s "$wasm_file" 2>/dev/null || stat -f%z "$wasm_file" 2>/dev/null || wc -c < "$wasm_file")
+            echo "Optimizing WASM with wasm-opt: $wasm_file (initial size: $ORIG_SIZE bytes)"
+            if "$WASM_OPT_EXEC" "${WASM_OPT_FLAGS[@]}" "$wasm_file" -o "$wasm_file"; then
+                NEW_SIZE=$(stat -c%s "$wasm_file" 2>/dev/null || stat -f%z "$wasm_file" 2>/dev/null || wc -c < "$wasm_file")
+                SAVED=$((ORIG_SIZE - NEW_SIZE))
+                echo "  -> wasm-opt optimization successful: $NEW_SIZE bytes (reduced by $SAVED bytes)"
+            elif "$WASM_OPT_EXEC" -Oz "$wasm_file" -o "$wasm_file"; then
+                echo "  -> wasm-opt fallback -Oz optimization succeeded"
+            else
+                echo "Warning: wasm-opt optimization failed on $wasm_file, retaining original binary."
+            fi
         fi
     done
+else
+    echo "Notice: wasm-opt binary not detected, skipping post-compile WASM optimization pass."
 fi
 
 # 6. Deployment Cache Invalidation & Version Stamping
