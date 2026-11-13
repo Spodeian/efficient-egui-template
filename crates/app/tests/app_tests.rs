@@ -64,10 +64,7 @@ fn test_template_app_export_dialog() {
     app.open_export_dialog(app::ExportFormat::Json);
 
     assert!(app.show_export_dialog.is_some());
-    assert!(
-        app.export_text_buffer
-            .contains("Deploy Serverless WebApp")
-    );
+    assert!(app.export_text_buffer.contains("Deploy Serverless WebApp"));
 }
 
 #[test]
@@ -120,7 +117,10 @@ fn test_template_app_load_multi_tier_json_and_ron() {
 fn test_storage_diagnostics_defaults() {
     let diag = app::storage_manager::StorageDiagnostics::default();
     assert_eq!(diag.memory_items_count, 0);
-    assert_eq!(diag.memory_capacity_limit, app::storage_manager::MEMORY_WORKING_SET_LIMIT);
+    assert_eq!(
+        diag.memory_capacity_limit,
+        app::storage_manager::MEMORY_WORKING_SET_LIMIT
+    );
     assert!(!diag.fallback_tier_active);
     assert!(!diag.quota_exceeded);
 }

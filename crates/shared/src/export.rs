@@ -103,7 +103,10 @@ pub fn import_from_csv(csv_str: &str) -> Result<ItemCollection, ExportError> {
             other => return Err(ExportError::InvalidPriority(other.to_string())),
         };
         let completed = fields[4].eq_ignore_ascii_case("true") || fields[4] == "1";
-        let created_at = fields.get(5).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+        let created_at = fields
+            .get(5)
+            .and_then(|s| s.parse::<u64>().ok())
+            .unwrap_or(0);
 
         items.push(Item {
             id,
@@ -116,7 +119,9 @@ pub fn import_from_csv(csv_str: &str) -> Result<ItemCollection, ExportError> {
     }
 
     if items.is_empty() {
-        return Err(ExportError::Csv("No valid items parsed from CSV".to_string()));
+        return Err(ExportError::Csv(
+            "No valid items parsed from CSV".to_string(),
+        ));
     }
 
     Ok(ItemCollection { items })

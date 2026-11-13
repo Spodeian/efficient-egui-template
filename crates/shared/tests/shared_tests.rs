@@ -45,7 +45,12 @@ fn test_item_collection_operations() {
     assert_eq!(collection.high_priority_count(), 0);
     assert_eq!(collection.completion_ratio(), 1.0);
 
-    let item2 = Item::new("test-2", "Critical Bug", "Must fix immediately", Priority::Critical);
+    let item2 = Item::new(
+        "test-2",
+        "Critical Bug",
+        "Must fix immediately",
+        Priority::Critical,
+    );
     collection.add(item2);
     assert_eq!(collection.total_count(), 2);
     assert_eq!(collection.high_priority_count(), 1);
@@ -80,7 +85,10 @@ fn test_bson_roundtrip() {
     let bytes = export_to_compressed_bson(&state).expect("Export BSON failed");
     assert!(!bytes.is_empty());
     let imported: AppState = import_from_compressed_bson(&bytes).expect("Import BSON failed");
-    assert_eq!(state.collection.items.len(), imported.collection.items.len());
+    assert_eq!(
+        state.collection.items.len(),
+        imported.collection.items.len()
+    );
 }
 
 #[test]
