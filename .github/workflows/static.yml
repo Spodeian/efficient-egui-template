@@ -41,7 +41,7 @@ jobs:
 
       - name: Cache Trunk Binary
         id: cache-trunk
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/bin/trunk
           key: ${{ runner.os }}-trunk-latest
@@ -55,7 +55,7 @@ jobs:
 
       - name: Cache wasm-opt Binary (Binaryen)
         id: cache-wasm-opt
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/bin/wasm-opt
           key: ${{ runner.os }}-wasm-opt-version_132
