@@ -2,7 +2,7 @@
 
 [![CI & Test Suite](https://github.com/Spodeian/efficient-egui-template/actions/workflows/ci.yml/badge.svg)](https://github.com/Spodeian/efficient-egui-template/actions/workflows/ci.yml)
 [![GitHub Pages](https://github.com/Spodeian/efficient-egui-template/actions/workflows/static.yml/badge.svg)](https://github.com/Spodeian/efficient-egui-template/actions/workflows/static.yml)
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
+[![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue.svg)](LICENSE.md)
 [![Rust: 2024 Edition](https://img.shields.io/badge/Rust-2024%20Edition-orange.svg)](https://www.rust-lang.org)
 [![egui: 0.36](https://img.shields.io/badge/egui-0.36-blueviolet.svg)](https://github.com/emilk/egui)
 [![Cloudflare Pages: v3](https://img.shields.io/badge/Cloudflare%20Pages-Build%20System%20v3-F38020.svg)](https://pages.cloudflare.com)
@@ -200,4 +200,10 @@ The compiled release executable will be located in `target/release/`.
 
 ## 📄 License
 
-This template is dual-licensed under [MIT](LICENSE-MIT) or [Apache 2.0](LICENSE-APACHE) at your option.
+Licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE.md). You may use,
+change and share this software for any noncommercial purpose. For a
+commercial license, contact [Spodeian](https://github.com/Spodeian). Earlier
+releases keep the license they were published under.
+
+Projects generated from this template inherit the PolyForm Noncommercial
+License unless Spodeian grants otherwise.
