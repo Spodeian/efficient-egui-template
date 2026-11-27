@@ -10,7 +10,7 @@ edition = "2024"
 license = "PolyForm-Noncommercial-1.0.0"
 readme = "README.md"
 description = "Modern, modular Serverless (WASM/Cloudflare Pages) & Native Desktop template built with Rust and egui"
-repository = "https://github.com/Spodeian/efficient-egui-template"
+repository = "https://github.com/Spodeian/{{project-name}}"
 
 [workspace.dependencies]
 eframe = { version = "0.36", default-features = false, features = ["default_fonts"] }

@@ -1,6 +1,7 @@
 [template]
 cargo_generate_version = ">=0.18.0"
-exclude = [
+# Not copied into generated projects.
+ignore = [
     "target",
     "dist",
     "crates/web/dist",
@@ -9,6 +10,15 @@ exclude = [
     "Cargo.lock",
     "CHANGELOG.md",
     "CONTRIBUTING.md",
+]
+# Copied verbatim: GitHub `${{ }}` expressions, `{{` in format! strings and binaries break Liquid.
+exclude = [
+    ".github/**",
+    "crates/shared/src/export.rs",
+    "**/*.png",
+    "**/*.ico",
+    "**/*.icns",
+    "**/*.woff2",
 ]
 
 [placeholders.include_desktop]

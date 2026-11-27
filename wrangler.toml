@@ -1,4 +1,4 @@
-name = "efficient-egui-template"
+name = "{{project-name}}"
 compatibility_date = "2026-11-23"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true

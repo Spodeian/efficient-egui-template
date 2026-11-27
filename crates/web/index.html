@@ -40,9 +40,13 @@
       data-wasm-opt-params="--enable-simd --enable-bulk-memory --enable-mutable-globals --enable-nontrapping-float-to-int --enable-sign-ext --converge --directize --duplicate-function-elimination --coalesce-locals --vacuum --strip-debug --strip-producers"
       data-integrity="none"
     >
+    <!-- cargo-generate drops these files when the option is off; the comments keep this file valid HTML. -->
+    <!-- {% if include_cloudflare_pages %} -->
     <link data-trunk rel="copy-file" href="_headers">
+    <!-- {% endif %}{% if include_pwa %} -->
     <link data-trunk rel="copy-file" href="sw.js">
     <link data-trunk rel="copy-file" href="manifest.json">
+    <!-- {% endif %} -->
     <link data-trunk rel="copy-file" href="favicon.svg">
     <link data-trunk rel="copy-file" href="favicon.ico">
     <link data-trunk rel="copy-file" href="icon-192.png">
