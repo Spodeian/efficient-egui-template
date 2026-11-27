@@ -1,6 +1,5 @@
 //! Web entrypoint and WebRunner for the Serverless & Desktop Template.
 #![warn(missing_docs)]
-#![warn(clippy::unwrap_used)]
 
 #[cfg(target_arch = "wasm32")]
 use app::TemplateApp;

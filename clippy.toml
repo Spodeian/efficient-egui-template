@@ -1,0 +1,2 @@
+# `unwrap_used` is a workspace lint for library code; tests may unwrap.
+allow-unwrap-in-tests = true

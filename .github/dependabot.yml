@@ -9,6 +9,9 @@ updates:
     ignore:
       - dependency-name: "spodeian-*"
       - dependency-name: "sml-*"
+      # Pinned to the version spodeian-core uses; bump both together.
+      - dependency-name: "base64"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "egui"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "eframe"

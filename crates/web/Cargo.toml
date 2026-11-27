@@ -34,3 +34,6 @@ glow = ["app/glow", "eframe/glow"]
 wasm-bindgen-test = { workspace = true }
 
 
+
+[lints]
+workspace = true

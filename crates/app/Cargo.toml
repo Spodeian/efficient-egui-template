@@ -19,11 +19,9 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 shared = { workspace = true }
 bson = { workspace = true }
-miniz_oxide = { workspace = true }
 base64 = { workspace = true }
 thiserror = { workspace = true }
 ron = { workspace = true }
-spodeian-cache = { workspace = true }
 spodeian-persist = { workspace = true }
 spodeian-telemetry = { workspace = true }
 spodeian-tokens = { workspace = true }
@@ -56,3 +54,6 @@ persistence = ["eframe/persistence"]
 wgpu = ["eframe/wgpu"]
 glow = ["eframe/glow"]
 
+
+[lints]
+workspace = true

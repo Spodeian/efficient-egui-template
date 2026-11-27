@@ -40,21 +40,7 @@ fn normalize_state_version(mut state: AppState) -> AppState {
     state
 }
 
-/// Escapes special HTML characters (`&`, `<`, `>`, `"`, `'`) to prevent markup injection.
-pub fn escape_html(input: &str) -> String {
-    let mut out = String::with_capacity(input.len());
-    for ch in input.chars() {
-        match ch {
-            '&' => out.push_str("&amp;"),
-            '<' => out.push_str("&lt;"),
-            '>' => out.push_str("&gt;"),
-            '"' => out.push_str("&quot;"),
-            '\'' => out.push_str("&#39;"),
-            _ => out.push(ch),
-        }
-    }
-    out
-}
+pub use spodeian_export::escape_html;
 
 /// Serializes application state to formatted JSON.
 pub fn export_to_json(state: &AppState) -> Result<String, ExportError> {
@@ -196,14 +182,11 @@ pub fn import_from_compressed_bson(bytes: &[u8]) -> Result<AppState, String> {
     if bytes.is_empty() {
         return Err("BSON input is empty".to_string());
     }
-    let bson_bytes =
-        miniz_oxide::inflate::decompress_to_vec_zlib(bytes).unwrap_or_else(|_| bytes.to_vec());
-
-    if let Ok(doc) = bson::from_slice::<bson::Document>(&bson_bytes)
+    if let Ok(doc) = spodeian_export::import_from_compressed_bson::<bson::Document>(bytes)
         && !doc.contains_key("collection")
         && !doc.contains_key("config")
         && doc.contains_key("items")
-        && let Ok(col) = bson::from_slice::<ItemCollection>(&bson_bytes)
+        && let Ok(col) = spodeian_export::import_from_compressed_bson::<ItemCollection>(bytes)
     {
         return Ok(AppState {
             schema_version: CURRENT_SCHEMA_VERSION,

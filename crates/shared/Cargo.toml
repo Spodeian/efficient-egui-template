@@ -11,7 +11,6 @@ description = "Core business models, serialization, state management, and export
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 bson = { workspace = true }
-miniz_oxide = { workspace = true }
 base64 = { workspace = true }
 thiserror = { workspace = true }
 spodeian-parallel = { workspace = true }
@@ -31,3 +30,6 @@ proptest = { workspace = true }
 [[bench]]
 name = "serialization_benchmarks"
 harness = false
+
+[lints]
+workspace = true

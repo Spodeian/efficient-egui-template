@@ -30,8 +30,8 @@ web-sys = { version = "0.3", features = ["Document", "Window", "HtmlCanvasElemen
 js-sys = "0.3"
 console_error_panic_hook = "0.1.7"
 bson = "2"
-miniz_oxide = "0.9"
-base64 = "0.23"
+# Keep in step with spodeian-core so builds carry one copy (Dependabot ignores it).
+base64 = "0.22"
 ron = "0.12"
 criterion = "0.5"
 proptest = "1"
@@ -39,13 +39,19 @@ wasm-bindgen-test = "0.3"
 winit = { version = "0.30", default-features = false }
 android-activity = { version = "0.6", default-features = false, features = ["native-activity"] }
 spodeian-parallel = { git = "https://github.com/Spodeian/spodeian-core", tag = "v3.1.0", version = "^1.0.0" }
-spodeian-cache = { git = "https://github.com/Spodeian/spodeian-core", tag = "v3.1.0" }
 spodeian-tokens = { git = "https://github.com/Spodeian/spodeian-core", tag = "v3.1.0" }
 spodeian-telemetry = { git = "https://github.com/Spodeian/spodeian-core", tag = "v3.1.0" }
 spodeian-export = { git = "https://github.com/Spodeian/spodeian-core", tag = "v3.1.0" }
 spodeian-web-utils = { git = "https://github.com/Spodeian/spodeian-core", tag = "v3.1.0" }
 spodeian-ui = { git = "https://github.com/Spodeian/spodeian-core", tag = "v3.1.0" }
 spodeian-persist = { git = "https://github.com/Spodeian/spodeian-core", tag = "v3.1.0" }
+
+# Lint policy shared by every crate (`[lints] workspace = true`).
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+unwrap_used = "warn"
 
 [profile.release]
 opt-level = 3

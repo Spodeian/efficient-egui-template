@@ -1,6 +1,5 @@
 //! Main egui application view controller, shell layout, and cross-platform runners.
 #![warn(missing_docs)]
-#![warn(clippy::unwrap_used)]
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::if_same_then_else)]
 
@@ -1041,6 +1040,8 @@ impl eframe::App for TemplateApp {
 }
 
 #[cfg(target_os = "android")]
+// The Android/iOS runtime looks this symbol up by name.
+#[allow(unsafe_code)]
 #[unsafe(no_mangle)]
 fn android_main(app: winit::platform::android::activity::AndroidApp) {
     use eframe::NativeOptions;
@@ -1056,6 +1057,8 @@ fn android_main(app: winit::platform::android::activity::AndroidApp) {
 }
 
 #[cfg(target_os = "ios")]
+// The Android/iOS runtime looks this symbol up by name.
+#[allow(unsafe_code)]
 #[unsafe(no_mangle)]
 pub extern "C" fn ios_main() {
     use eframe::NativeOptions;

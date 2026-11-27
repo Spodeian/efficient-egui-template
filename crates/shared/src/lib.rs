@@ -1,6 +1,5 @@
 //! Core shared domain models, serialization, state management, and export logic.
 #![warn(missing_docs)]
-#![warn(clippy::unwrap_used)]
 
 pub mod export;
 pub mod models;

@@ -23,3 +23,6 @@ accesskit = ["app/accesskit", "eframe/accesskit"]
 persistence = ["app/persistence", "eframe/persistence"]
 wgpu = ["app/wgpu", "eframe/wgpu"]
 glow = ["app/glow", "eframe/glow"]
+
+[lints]
+workspace = true
