@@ -1,0 +1,52 @@
+name: Template Generation
+
+# Tests this repo as a cargo-generate template. cargo-generate.toml leaves this file out of
+# generated projects, where it would make no sense.
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+    types: [ opened, synchronize, reopened, labeled, unlabeled ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  template-scaffold-check:
+    name: Verify Web-Only Scaffold (No Desktop)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure Private Git Auth (Optional)
+        env:
+          SPODEIAN_GIT_TOKEN: ${{ secrets.SPODEIAN_CORE_TOKEN || secrets.PRIVATE_READ_ACCESS || secrets.GH_PAT }}
+        run: |
+          if [ -n "$SPODEIAN_GIT_TOKEN" ]; then
+            echo "CARGO_NET_GIT_FETCH_WITH_CLI=true" >> "$GITHUB_ENV"
+            git config --global url."https://x-access-token:${SPODEIAN_GIT_TOKEN}@github.com/".insteadOf "https://github.com/"
+          fi
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-generate
+      - name: Generate a project with every option off and build it
+        env:
+          CARGO_TARGET_DIR: ${{ github.workspace }}/target
+        run: |
+          # A clean copy: cargo-generate copies the whole source tree, including a cache-restored target/.
+          mkdir -p "$RUNNER_TEMP/template"
+          git archive HEAD | tar -x -C "$RUNNER_TEMP/template"
+          cargo generate --path "$RUNNER_TEMP/template" --name name-check --destination "$RUNNER_TEMP" --silent --vcs none
+          grep -qx 'name = "name-check"' "$RUNNER_TEMP/name-check/wrangler.toml"
+          cargo generate --path "$RUNNER_TEMP/template" --name scaffold-check --destination "$RUNNER_TEMP" --silent --vcs none \
+            -d include_desktop=false -d include_pwa=false \
+            -d include_cloudflare_pages=false -d include_mobile_entrypoints=false
+          cd "$RUNNER_TEMP/scaffold-check"
+          cargo check --workspace --target wasm32-unknown-unknown
+          cargo test -p shared

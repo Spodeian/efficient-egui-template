@@ -10,6 +10,8 @@ ignore = [
     "Cargo.lock",
     "CHANGELOG.md",
     "CONTRIBUTING.md",
+    # CI that tests this template itself (runs cargo generate); meaningless in a generated project.
+    ".github/workflows/template.yml",
 ]
 # Copied verbatim: GitHub `${{ }}` expressions, `{{` in format! strings and binaries break Liquid.
 exclude = [

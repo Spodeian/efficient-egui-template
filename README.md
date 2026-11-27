@@ -216,7 +216,7 @@ The compiled release executable will be located in `target/release/`.
 |---|---|---|---|
 | **`efficient-egui-template`** *(this repo)* | Custom 2D/3D viewports, CAD/science/audio GUIs, single-binary apps | 4 crates (`shared`, `app`, `desktop`, `web`) + `spodeian-ui` | `wgpu` (default) / `glow`, native `winit` + `mimalloc`, `spodeian-parallel` (Rayon/WASM), WGSL shader ready |
 | **`efficient-leptos-template`** | Hybrid websites + native desktop/mobile apps sharing one DOM UI | 5 crates (`shared`, `app`, `web`, `ssg`, `desktop`) | Static SSR + WASM `hydrate` + Tauri v2 `csr` + native Rayon IPC commands + WGSL shader ready |
-| **`efficient-leptos-edge-template`** | Pure zero-backend edge websites, SEO content, PWAs | 4 crates (`shared`, `app`, `web`, `ssg`) — zero desktop deps | Static SSR + WASM `hydrate` only, JSON-LD, `sitemap.xml`, `_redirects`, Rayon SSR / SIMD128 WASM |
+| **`efficient-leptos-template`**, edge mode (`include_tauri_desktop=false`) | Pure zero-backend edge websites, SEO content, PWAs | 4 crates (`shared`, `app`, `web`, `ssg`) — zero desktop deps | Static SSR + WASM `hydrate` only, JSON-LD, `sitemap.xml`, Rayon SSR / SIMD128 WASM |
 
 ### vs. Generic `eframe` Starters
 
