@@ -107,135 +107,62 @@ pub enum SaveOutcome {
     Failed(String),
 }
 
-/// Browser persistence: the whole state is one IndexedDB record, read once at startup and
-/// written asynchronously. Saves run one at a time, and a burst of changes collapses into
-/// one write of the latest state, so the UI thread never blocks on storage.
+/// Browser persistence: the whole state is one IndexedDB record, handled by
+/// `spodeian_persist::WebStateStore` (loaded once, saved in the background, bursts coalesced).
 #[cfg(target_arch = "wasm32")]
 mod web_store {
     use super::{DEDICATED_STORAGE_KEY, SaveOutcome, StorageBackend, deserialize_app_state};
-    use spodeian_cache::web::IndexedDbStore;
-    use std::cell::{Cell, RefCell};
-
-    const DB_NAME: &str = "spodeian-egui-template";
-    const STORE_NAME: &str = "state";
+    use spodeian_persist::{LegacyLocations, WebStateStore};
+    use std::cell::RefCell;
 
     thread_local! {
-        static DB: RefCell<Option<IndexedDbStore>> = const { RefCell::new(None) };
-        static CTX: RefCell<Option<egui::Context>> = const { RefCell::new(None) };
-        static PENDING: RefCell<Option<String>> = const { RefCell::new(None) };
-        static SAVING: Cell<bool> = const { Cell::new(false) };
-        static LAST_SAVED: RefCell<Option<String>> = const { RefCell::new(None) };
-        static LOADED: RefCell<Option<Option<shared::AppState>>> = const { RefCell::new(None) };
-        static OUTCOME: RefCell<Option<SaveOutcome>> = const { RefCell::new(None) };
-    }
-
-    fn repaint() {
-        CTX.with(|c| {
-            if let Some(ctx) = c.borrow().as_ref() {
-                ctx.request_repaint();
-            }
-        });
-    }
-
-    fn report(outcome: SaveOutcome) {
-        OUTCOME.with(|o| *o.borrow_mut() = Some(outcome));
-        repaint();
+        static STORE: RefCell<Option<WebStateStore>> = const { RefCell::new(None) };
     }
 
     pub fn open(ctx: &egui::Context) {
-        CTX.with(|c| *c.borrow_mut() = Some(ctx.clone()));
-        wasm_bindgen_futures::spawn_local(async {
-            let db = match IndexedDbStore::open(DB_NAME, STORE_NAME).await {
-                Ok(db) => db,
-                Err(e) => {
-                    return report(SaveOutcome::Failed(format!("Could not open storage: {e}")));
-                }
-            };
-            let saved = match db.get_bytes(DEDICATED_STORAGE_KEY).await {
-                Ok(bytes) => bytes.and_then(|b| String::from_utf8(b).ok()),
-                Err(e) => {
-                    report(SaveOutcome::Failed(format!(
-                        "Could not load saved data: {e}"
-                    )));
-                    None
-                }
-            };
-            let state = saved.as_deref().and_then(|json| {
-                deserialize_app_state(json)
-                    .map_err(|e| tracing::warn!("Ignoring unreadable saved state: {e}"))
-                    .ok()
-            });
-            if state.is_some() {
-                // Saves queued before the load would overwrite the record with the
-                // startup state; the loaded state replaces that state instead.
-                PENDING.with(|p| p.borrow_mut().take());
-                LAST_SAVED.with(|l| *l.borrow_mut() = saved);
-            }
-            LOADED.with(|l| *l.borrow_mut() = Some(state));
-            DB.with(|d| *d.borrow_mut() = Some(db));
-            repaint();
-            run_saves();
-        });
+        let ctx = ctx.clone();
+        let legacy = LegacyLocations {
+            // Earlier versions kept the state in local storage, mirrored into a write-only
+            // IndexedDB database.
+            local_storage_keys: vec![DEDICATED_STORAGE_KEY.into(), eframe::APP_KEY.into()],
+            databases: vec!["app_template_offline_store".into()],
+        };
+        let store = WebStateStore::open(
+            "spodeian-egui-template",
+            DEDICATED_STORAGE_KEY,
+            legacy,
+            move || ctx.request_repaint(),
+        );
+        STORE.with(|s| *s.borrow_mut() = Some(store));
+    }
+
+    fn with_store<T>(f: impl FnOnce(&WebStateStore) -> Option<T>) -> Option<T> {
+        STORE.with(|s| s.borrow().as_ref().and_then(f))
     }
 
     pub fn take_loaded() -> Option<Option<shared::AppState>> {
-        LOADED.with(|l| l.borrow_mut().take())
+        with_store(WebStateStore::take_loaded).map(|saved| {
+            saved.and_then(|json| {
+                deserialize_app_state(&json)
+                    .map_err(|e| tracing::warn!("Ignoring unreadable saved state: {e}"))
+                    .ok()
+            })
+        })
     }
 
     pub fn take_outcome() -> Option<SaveOutcome> {
-        OUTCOME.with(|o| o.borrow_mut().take())
+        with_store(WebStateStore::take_outcome).map(|outcome| match outcome {
+            spodeian_persist::SaveOutcome::Saved => SaveOutcome::Saved(StorageBackend::IndexedDb),
+            spodeian_persist::SaveOutcome::Failed(message) => SaveOutcome::Failed(message),
+            other => SaveOutcome::Failed(format!("{other:?}")),
+        })
     }
 
     pub fn queue(json: String) {
-        if LAST_SAVED.with(|l| l.borrow().as_deref() == Some(json.as_str())) {
-            return; // unchanged since the last write
-        }
-        PENDING.with(|p| *p.borrow_mut() = Some(json));
-        run_saves();
-    }
-
-    fn run_saves() {
-        let Some(db) = DB.with(|d| d.borrow().clone()) else {
-            return; // still opening; `open` starts the saves once the load is done
-        };
-        if PENDING.with(|p| p.borrow().is_none()) || SAVING.with(|s| s.replace(true)) {
-            return;
-        }
-        wasm_bindgen_futures::spawn_local(async move {
-            while let Some(json) = PENDING.with(|p| p.borrow_mut().take()) {
-                match db.put_bytes(DEDICATED_STORAGE_KEY, json.as_bytes()).await {
-                    Ok(()) => {
-                        let first_save = LAST_SAVED.with(|l| l.borrow().is_none());
-                        LAST_SAVED.with(|l| *l.borrow_mut() = Some(json));
-                        if first_save {
-                            remove_legacy_copies();
-                        }
-                        report(SaveOutcome::Saved(StorageBackend::IndexedDb));
-                    }
-                    Err(e) => report(SaveOutcome::Failed(format!(
-                        "Changes could not be saved: {e}"
-                    ))),
-                }
-            }
-            SAVING.with(|s| s.set(false));
+        with_store(|store| {
+            store.queue_save(json);
+            Some(())
         });
-    }
-
-    /// Earlier versions kept the state in local storage, mirrored into a write-only
-    /// IndexedDB database. Once this store holds it, those copies are only stale data taking
-    /// up quota (local storage has about 5 MB).
-    fn remove_legacy_copies() {
-        let Some(window) = web_sys::window() else {
-            return;
-        };
-        if let Ok(Some(storage)) = window.local_storage() {
-            for key in [DEDICATED_STORAGE_KEY, eframe::APP_KEY] {
-                let _ = storage.remove_item(key);
-            }
-        }
-        if let Ok(Some(factory)) = window.indexed_db() {
-            let _ = factory.delete_database("app_template_offline_store");
-        }
     }
 }
 

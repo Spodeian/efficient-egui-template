@@ -34,9 +34,8 @@ proptest = { workspace = true }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { workspace = true }
 wasm-bindgen-futures = { workspace = true }
-web-sys = { workspace = true, features = ["HtmlDocument", "Window", "Document", "Blob", "BlobPropertyBag", "Url", "HtmlAnchorElement", "Location", "Storage", "IdbFactory", "IdbOpenDbRequest"] }
+web-sys = { workspace = true, features = ["HtmlDocument", "Window", "Document", "Blob", "BlobPropertyBag", "Url", "HtmlAnchorElement", "Location", "Storage"] }
 js-sys = { workspace = true }
-spodeian-cache = { workspace = true }
 
 [target.'cfg(not(any(target_arch = "wasm32", target_os = "android", target_os = "ios")))'.dependencies]
 eframe = { workspace = true, features = ["x11", "wayland"] }
