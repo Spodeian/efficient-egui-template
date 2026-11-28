@@ -366,10 +366,13 @@ impl TemplateApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         info!("Initializing Serverless & Desktop Template App...");
 
+        // Native state (and pre-IndexedDB browser state) loads synchronously here; in the
+        // browser the IndexedDB copy follows a moment later and replaces it.
         let state = load_state_multi_tier(cc.storage).unwrap_or_else(|| {
             warn!("No saved state found in storage, initializing fresh defaults.");
             AppState::default()
         });
+        open_durable_store(&cc.egui_ctx);
 
         Self {
             state,
@@ -633,7 +636,7 @@ impl TemplateApp {
         }
     }
 
-    /// Immediately persists current state to multi-tier storage unless previewing a shared link.
+    /// Saves the current state (asynchronously in the browser) unless previewing a shared link.
     pub fn persist_state(&mut self) {
         if self.is_viewing_shared_link {
             return;
@@ -643,22 +646,50 @@ impl TemplateApp {
         self.storage_diag.fallback_tier_active =
             items_len > MEMORY_WORKING_SET_LIMIT || self.storage_diag.idb_active;
 
-        if let Ok(json_str) = serde_json::to_string(&self.state) {
-            match save_state_multi_tier(DEDICATED_STORAGE_KEY, &json_str) {
-                Ok(backend) => {
-                    self.storage_diag.backend = backend;
-                    if backend == StorageBackend::IndexedDb {
-                        self.storage_diag.quota_exceeded = true;
-                        self.storage_diag.idb_active = true;
-                    } else {
-                        self.storage_diag.quota_exceeded = false;
-                    }
-                    self.set_status_toast("✓ Saved");
-                }
-                Err(_) => {
-                    self.storage_diag.quota_exceeded = true;
-                }
+        match queue_state_save(&self.state) {
+            // The browser reports the write's real result later, via `apply_storage_events`.
+            Ok(StorageBackend::DiskFile) => {
+                self.storage_diag.backend = StorageBackend::DiskFile;
+                self.set_status_toast("✓ Saved");
             }
+            Ok(_) => {}
+            Err(e) => {
+                error!("Could not serialize state: {e}");
+                self.set_status_toast("⚠ Not saved");
+            }
+        }
+    }
+
+    /// Applies results from the asynchronous browser store: the state loaded at startup and
+    /// the outcome of each finished save. Does nothing on native.
+    fn apply_storage_events(&mut self) {
+        match take_loaded_state() {
+            Some(Some(loaded)) => {
+                if self.is_viewing_shared_link {
+                    self.saved_local_state_backup = Some(loaded);
+                } else {
+                    self.state = loaded;
+                }
+                self.storage_diag.backend = StorageBackend::IndexedDb;
+                self.storage_diag.idb_active = true;
+            }
+            // Nothing in IndexedDB yet: move whatever loaded at startup into it.
+            Some(None) => self.persist_state(),
+            None => {}
+        }
+        match take_save_outcome() {
+            Some(SaveOutcome::Saved(backend)) => {
+                self.storage_diag.backend = backend;
+                self.storage_diag.idb_active = backend == StorageBackend::IndexedDb;
+                self.storage_diag.quota_exceeded = false;
+                self.set_status_toast("✓ Saved");
+            }
+            Some(SaveOutcome::Failed(message)) => {
+                error!("{message}");
+                self.storage_diag.quota_exceeded = message.contains("QuotaExceeded");
+                self.set_status_toast("⚠ Not saved");
+            }
+            None => {}
         }
     }
 
@@ -898,22 +929,25 @@ impl TemplateApp {
 
 impl eframe::App for TemplateApp {
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        let state_to_save = if self.is_viewing_shared_link {
-            self.saved_local_state_backup
-                .as_ref()
-                .unwrap_or(&self.state)
-        } else {
-            &self.state
-        };
-
-        eframe::set_value(storage, eframe::APP_KEY, state_to_save);
-
-        if let Ok(json_str) = serde_json::to_string(state_to_save) {
-            storage.set_string(DEDICATED_STORAGE_KEY, json_str);
+        // Native: eframe's storage file is the durable copy. The browser keeps the state in
+        // IndexedDB instead, so writing it into local storage here would only duplicate it.
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let state_to_save = if self.is_viewing_shared_link {
+                self.saved_local_state_backup
+                    .as_ref()
+                    .unwrap_or(&self.state)
+            } else {
+                &self.state
+            };
+            eframe::set_value(storage, eframe::APP_KEY, state_to_save);
+            storage.flush();
         }
-        storage.flush();
-
-        self.persist_state();
+        #[cfg(target_arch = "wasm32")]
+        {
+            let _ = storage;
+            self.persist_state();
+        }
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
@@ -936,6 +970,7 @@ impl eframe::App for TemplateApp {
             self.status_toast = None;
         }
 
+        self.apply_storage_events();
         self.handle_keyboard_shortcuts(ui.ctx());
         self.handle_dropped_files(ui.ctx());
 

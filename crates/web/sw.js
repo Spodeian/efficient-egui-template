@@ -1,5 +1,10 @@
 // Service Worker for Serverless & Desktop Template
-// Strategy: Network-First for HTML navigations; Cache-First with Background Revalidation for hashed bundles.
+// Strategy:
+// - Pages: network first, cached copy when offline.
+// - Trunk's content-hashed bundles (name-<16 hex>.js/.wasm/.css): cache first. A given URL
+//   never changes, so once cached there is no network request at all.
+// - Everything else (manifest, icons): network first, cached copy when offline.
+// Each deploy stamps a new BUILD_ID, so a new cache replaces the old one on activation.
 const BUILD_ID = '__BUILD_ID__';
 const CACHE_NAME = `serverless-desktop-template-cache-${BUILD_ID}`;
 const PRECACHE_URLS = /*__PRECACHE_URLS__*/ [];
@@ -71,50 +76,34 @@ self.addEventListener('fetch', (event) => {
   }
 
   const isNavigation = event.request.mode === 'navigate' || event.request.destination === 'document' || url.pathname.endsWith('.html') || url.pathname === '/';
+  const isHashedBundle = /-[0-9a-f]{16}(_bg)?\.(js|wasm|css)$/.test(url.pathname);
 
   event.respondWith(
     caches.open(CACHE_NAME).then(async (cache) => {
-      if (isNavigation) {
-        try {
-          const networkResponse = await fetch(event.request);
-          if (networkResponse && networkResponse.status === 200) {
-            cache.put(event.request, networkResponse.clone());
-          }
-          return networkResponse;
-        } catch (_) {
-          const cached = await cache.match(event.request) || await cache.match('/index.html') || await cache.match('/');
-          if (cached) {
-            return cached;
-          }
+      if (isHashedBundle) {
+        const cached = await cache.match(event.request);
+        if (cached) {
+          return cached;
         }
       }
-
-      // 1. Check cache first for hashed assets
-      const cachedResponse = await cache.match(event.request);
-
-      // 2. Background network fetch & cache update
-      const networkFetch = fetch(event.request).then((networkResponse) => {
+      try {
+        const networkResponse = await fetch(event.request);
         if (networkResponse && networkResponse.status === 200) {
-          cache.put(event.request, networkResponse.clone());
+          event.waitUntil(cache.put(event.request, networkResponse.clone()));
         }
         return networkResponse;
-      }).catch(() => null);
-
-      if (cachedResponse) {
-        event.waitUntil(networkFetch);
-        return cachedResponse;
+      } catch (_) {
+        const cached = await cache.match(event.request)
+          || (isNavigation && (await cache.match('/index.html') || await cache.match('/')));
+        if (cached) {
+          return cached;
+        }
+        return new Response('Offline: Network unavailable', {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: new Headers({ 'Content-Type': 'text/plain; charset=utf-8' })
+        });
       }
-
-      const networkResponse = await networkFetch;
-      if (networkResponse) {
-        return networkResponse;
-      }
-
-      return new Response('Offline: Network unavailable', {
-        status: 503,
-        statusText: 'Service Unavailable',
-        headers: new Headers({ 'Content-Type': 'text/plain; charset=utf-8' })
-      });
     })
   );
 });

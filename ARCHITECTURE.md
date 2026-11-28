@@ -47,5 +47,5 @@ graph TD
 ## 4. Frame Pacing, Persistence & Safe State Sharing
 
 - **Battery & Browser Frame Pacing (`ReactiveFramePacer`)**: Suppresses busy-loop repaints when idle and boosts cadence smoothly during hover/drag animations or modal transitions.
-- **Multi-Tier Storage & Backup**: `StorageManager` routes hot working sets (`MEMORY_WORKING_SET_LIMIT = 100`) to `localStorage` (< 16 KB) / IndexedDB on web and atomic JSON snapshots on desktop, while preserving schema evolution (`schema_version` + `StateMigrator`).
+- **Multi-Tier Storage & Backup**: `StorageManager` keeps the state in one IndexedDB record on web (loaded once, saved asynchronously and coalesced) and in eframe's storage file on desktop, while preserving schema evolution (`schema_version` + `StateMigrator`).
 - **Non-Destructive `#state=` URL Sharing**: Opening a `#state=` URL snapshots the user's pre-existing local workspace before rendering the shared preview banner (`Keep Shared Copy` vs. `Restore My Local Data`).

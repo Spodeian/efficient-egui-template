@@ -78,11 +78,11 @@ graph TD
   - **Dashboard Page**: Interactive item collection with real-time statistics, search & priority filtering, instant creation, and drag-and-drop `.json` / `.csv` / `.bson` file import.
   - **Analytics Page**: KPI `PerformanceMetricCard`s, colorblind-safe priority breakdown chart, and interactive 2D pan/zoom parametric signal explorer (`ParametricPreviewConfig`) with `.svg` and printable `.html` exports.
   - **About Page**: Architectural overview, embedded `ThemePickerWidget` & `AccessibilityPreferences` panel (`ColorblindMode`, reduced motion, large touch targets, UI scaling, dyslexia-friendly spacing), live runtime diagnostics, and keyboard shortcuts guide (`F11` Zen Mode, `Ctrl+K` Command Palette, `Ctrl+Shift+L` Share Link).
-  - **Shared-Link Banner & Bottom Status Footer**: Non-destructive preview/restore banner for `#state=` shared URLs, live storage tier indicator (`LocalStorage` vs `IndexedDB`), quick page navigation links, and licensing notice.
+  - **Shared-Link Banner & Bottom Status Footer**: Non-destructive preview/restore banner for `#state=` shared URLs, live storage tier indicator, quick page navigation links, and licensing notice.
 - **💾 Robust Multi-Tier State Persistence & Memory Protection**:
   - **In-Memory Tier (RAM)**: Native Rust struct representation for sub-microsecond latency, 0-allocation query paths, and 60-120 FPS rendering. Includes bounded capacity (`MEMORY_WORKING_SET_LIMIT` = 100 items) to prevent browser tab and process memory exhaustion (OOM).
-  - **Tier 1 (Fast Sync)**: Synchronous browser `localStorage` under dedicated storage key `serverless_template_app_state` for fast reloads (< 16 KB).
-  - **Tier 2 (IndexedDB Fallback)**: Structured, transactional `IndexedDB` backing store that receives synchronized copies of state and acts as a durable fallback to prevent memory from overfilling on large datasets.
+  - **Browser (IndexedDB)**: the whole state is one IndexedDB record (`spodeian-cache` `IndexedDbStore`). It is read once at startup and written asynchronously, with a burst of changes coalesced into one write and unchanged states skipped, so the UI thread never blocks on storage. State from earlier versions in `localStorage` is migrated on first run.
+  - **Desktop**: eframe's storage file, written on exit and every 30 seconds.
   - **Dual-Format Deserializer**: Attempts JSON deserialization first, seamlessly falling back to RON for backwards and forwards compatibility.
   - **Active State Persistence**: Dispatches immediate saves on user interactions (adds, toggles, deletions, resets, imports, theme changes) in addition to window close / `beforeunload` events.
   - **Storage Diagnostics Modal**: Live inspection of memory item count, capacity limits, active storage tier, and persistence status (persistent vs. ephemeral) with one-click permission requests (`StorageManager.persist()`).
