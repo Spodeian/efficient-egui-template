@@ -92,17 +92,11 @@ impl Item {
 }
 
 /// Collection wrapper for item operations and metrics.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct ItemCollection {
     /// Ordered items managed in the working set.
     pub items: Vec<Item>,
-}
-
-impl Default for ItemCollection {
-    fn default() -> Self {
-        Self::with_sample_data()
-    }
 }
 
 impl ItemCollection {
@@ -167,15 +161,10 @@ impl ItemCollection {
     }
 
     /// Toggles the `completed` status of the item matching `id`.
-    pub fn toggle(&mut self, id: &str) {
+    pub fn toggle_completed(&mut self, id: &str) {
         if let Some(item) = self.items.iter_mut().find(|i| i.id == id) {
             item.completed = !item.completed;
         }
-    }
-
-    /// Alias for [`ItemCollection::toggle`].
-    pub fn toggle_completed(&mut self, id: &str) {
-        self.toggle(id);
     }
 
     /// Drops all completed items from the collection.
@@ -512,8 +501,12 @@ impl Default for AppState {
 
 impl AppState {
     /// Creates a new [`AppState`] with sample items and default configuration.
+    /// [`AppState::default`] stays empty so a payload missing its items never gains sample ones.
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            collection: ItemCollection::with_sample_data(),
+            ..Self::default()
+        }
     }
 
     /// Resets app domain data while preserving configuration preferences like theme.

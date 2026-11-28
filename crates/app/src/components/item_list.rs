@@ -325,7 +325,7 @@ pub fn render_item_list(app: &mut TemplateApp, ui: &mut egui::Ui, constraints: &
         app.record_undo_snapshot();
     }
     for id in item_ids_to_toggle {
-        app.state.collection.toggle(&id);
+        app.state.collection.toggle_completed(&id);
         collection_changed = true;
     }
     for id in item_ids_to_remove {

@@ -304,7 +304,7 @@ pub struct TemplateApp {
 
 impl Default for TemplateApp {
     fn default() -> Self {
-        let state = AppState::default();
+        let state = AppState::new();
         let mut telemetry_data = shared::default_template_telemetry();
         let storage_diag = query_storage_diagnostics();
         shared::refresh_telemetry_dashboard(
@@ -370,7 +370,7 @@ impl TemplateApp {
         // browser the IndexedDB copy follows a moment later and replaces it.
         let state = load_state_multi_tier(cc.storage).unwrap_or_else(|| {
             warn!("No saved state found in storage, initializing fresh defaults.");
-            AppState::default()
+            AppState::new()
         });
         open_durable_store(&cc.egui_ctx);
 

@@ -87,7 +87,7 @@ pub fn render_error_recovery_banner(app: &mut TemplateApp, ctx: &egui::Context) 
                             }
                             if ui.button("Reset State to Defaults").clicked() {
                                 app.record_undo_snapshot();
-                                app.state = shared::AppState::default();
+                                app.state = shared::AppState::new();
                                 app.last_recovered_error = None;
                                 app.persist_state();
                             }

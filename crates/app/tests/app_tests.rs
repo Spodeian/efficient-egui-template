@@ -45,7 +45,7 @@ fn test_template_app_save_and_load() {
         Priority::High,
     );
     app.state.collection.add(new_item);
-    app.state.collection.toggle("custom-persistent-1");
+    app.state.collection.toggle_completed("custom-persistent-1");
 
     // Save
     app.save(&mut storage);
@@ -77,7 +77,7 @@ fn test_template_app_load_multi_tier_json_and_ron() {
         DEDICATED_STORAGE_KEY, deserialize_app_state, load_state_multi_tier,
     };
 
-    let mut original_state = AppState::default();
+    let mut original_state = AppState::new();
     original_state.collection.add(Item::new(
         "task-a",
         "Task A",

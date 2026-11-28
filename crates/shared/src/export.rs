@@ -28,13 +28,16 @@ pub enum ExportError {
     /// Empty payload passed to an importer.
     #[error("Empty data provided")]
     EmptyData,
+    /// Versioned state envelope migration failure.
+    #[error("State migration error: {0}")]
+    Migration(String),
     /// Underlying `spodeian-export` error.
     #[error("Export error: {0}")]
     Spodeian(#[from] spodeian_export::ExportError),
 }
 
 fn normalize_state_version(mut state: AppState) -> AppState {
-    if state.schema_version == 0 {
+    if state.schema_version < CURRENT_SCHEMA_VERSION {
         state.schema_version = CURRENT_SCHEMA_VERSION;
     }
     state
@@ -49,7 +52,7 @@ pub fn export_to_json(state: &AppState) -> Result<String, ExportError> {
 
 /// Deserializes application state from a JSON string.
 /// Transparently handles [`VersionedSnapshot<AppState>`], full [`AppState`] payloads,
-/// and standalone [`ItemCollection`] payloads, upgrading `schema_version == 0`.
+/// and standalone [`ItemCollection`] payloads, upgrading older `schema_version`s.
 pub fn import_from_json(json_str: &str) -> Result<AppState, ExportError> {
     let trimmed = json_str.trim();
     if trimmed.is_empty() {
@@ -80,7 +83,7 @@ pub fn import_from_json(json_str: &str) -> Result<AppState, ExportError> {
 
     StateMigrator::deserialize_versioned_or_raw::<AppState>(trimmed)
         .map(normalize_state_version)
-        .map_err(|e| ExportError::Csv(e.to_string()))
+        .map_err(|e| ExportError::Migration(e.to_string()))
 }
 
 /// Serializes an item collection to RFC 4180-compliant CSV via `spodeian_export`.
@@ -136,8 +139,13 @@ pub fn import_from_csv(csv_str: &str) -> Result<ItemCollection, ExportError> {
             )));
         }
 
-        let id = fields[0].clone();
         let title = fields[1].clone();
+        // A blank id would collide on toggle/remove, so derive one from the title.
+        let id = if fields[0].is_empty() {
+            format!("item-{}", djb2_hash(&title))
+        } else {
+            fields[0].clone()
+        };
         let description = fields[2].clone();
         let priority = match fields[3].to_lowercase().as_str() {
             "low" => Priority::Low,
@@ -171,6 +179,12 @@ pub fn import_from_csv(csv_str: &str) -> Result<ItemCollection, ExportError> {
     Ok(ItemCollection { items })
 }
 
+fn djb2_hash(val: &str) -> u32 {
+    val.bytes().fold(5381u32, |h, b| {
+        (h << 5).wrapping_add(h).wrapping_add(u32::from(b))
+    })
+}
+
 /// Exports the application state into compressed BSON binary bytes (Zlib-compressed BSON).
 pub fn export_to_compressed_bson(state: &AppState) -> Result<Vec<u8>, String> {
     spodeian_export::export_to_compressed_bson(state)
@@ -195,10 +209,9 @@ pub fn import_from_compressed_bson(bytes: &[u8]) -> Result<AppState, String> {
         });
     }
 
-    if let Ok(state) = spodeian_export::import_from_compressed_bson::<AppState>(bytes) {
-        return Ok(normalize_state_version(state));
-    }
-    Err("BSON deserialization failed: incompatible payload".to_string())
+    spodeian_export::import_from_compressed_bson::<AppState>(bytes)
+        .map(normalize_state_version)
+        .map_err(|e| format!("BSON deserialization failed: {e}"))
 }
 
 /// Encodes `state` into a compact `#state=<url-safe-base64>` URL fragment suitable for link sharing.
