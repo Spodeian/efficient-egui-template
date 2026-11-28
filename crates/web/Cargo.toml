@@ -21,11 +21,12 @@ tracing-web = { workspace = true }
 tracing = { workspace = true }
 spodeian-telemetry = { workspace = true }
 app = { workspace = true }
+egui-web-accesskit = { workspace = true, optional = true }
 tracing-subscriber.workspace = true
 
 [features]
 default = ["accesskit", "persistence", "wgpu"]
-accesskit = ["app/accesskit", "eframe/accesskit"]
+accesskit = ["app/accesskit", "eframe/accesskit", "dep:egui-web-accesskit"]
 persistence = ["app/persistence", "eframe/persistence"]
 wgpu = ["app/wgpu", "eframe/wgpu"]
 glow = ["app/glow", "eframe/glow"]

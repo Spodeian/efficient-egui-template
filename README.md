@@ -87,7 +87,7 @@ graph TD
   - **Active State Persistence**: Dispatches immediate saves on user interactions (adds, toggles, deletions, resets, imports, theme changes) in addition to window close / `beforeunload` events.
   - **Storage Diagnostics Modal**: Live inspection of memory item count, capacity limits, active storage tier, and persistence status (persistent vs. ephemeral) with one-click permission requests (`StorageManager.persist()`).
 - **📱 Responsive & Touch-Friendly UI**: Layout automatically adapts across widescreen desktop monitors, tablets, and constrained mobile portrait viewports with adaptive element sizing and soft-wrap line calculations.
-- **🎨 Theme & Accessibility Engine**: Instant toggle via `ThemePickerWidget` between Charcoal Dark, Warm Light, High Contrast Dark, and High Contrast Light modes alongside `AccessibilityPreferences` (`ColorblindMode`, reduced motion, large touch targets, dyslexia-friendly spacing, `80%`–`150%` scaling) and `ReactiveFramePacer`.
+- **🎨 Theme & Accessibility Engine**: Instant toggle via `ThemePickerWidget` between Charcoal Dark, Warm Light, High Contrast Dark, and High Contrast Light modes alongside `AccessibilityPreferences` (`ColorblindMode`, reduced motion, large touch targets, dyslexia-friendly spacing, `80%`–`150%` scaling) and `ReactiveFramePacer`. On the web, [`egui-web-accesskit`](https://github.com/Spodeian/egui-web-accesskit) mirrors egui's AccessKit tree into an HTML/ARIA overlay so screen readers can read and operate the canvas UI.
 - **⌨️ Intuitive Keyboard Support**: Press `Enter` to submit items, `Ctrl+K` for Command Palette, `Ctrl+Z` / `Ctrl+Y` for Undo/Redo, `F11` for Zen Mode, `Ctrl+Shift+L` to copy a shareable `#state=` link, and `Escape` to close modals.
 - **📦 Data Interchange, Drag-and-Drop & File Downloads**:
   - Export and import formatted **JSON**, RFC 4180-compliant **CSV**, compact **Compressed BSON** (Zlib-compressed binary), self-contained **SVG** charts, printable **HTML** reports, and compressed `#state=<base64url>` shareable URL hashes.
@@ -227,7 +227,7 @@ The compiled release executable will be located in `target/release/`.
 | **Command Palette & Undo/Redo** | Built-in `CommandPaletteWidget`, shortcut conflict detector (`detect_shortcut_conflicts`), & `UndoStack` (`spodeian-ui`) | Manual implementation | Manual implementation |
 | **Persistence & Migration** | Versioned `AppState` envelopes (`schema_version`), JSON/Compressed BSON/CSV (`spodeian-export`), multi-tier fallback (`spodeian-persist`) | Basic `eframe::get_value` / `set_value` | Manual implementation |
 | **PWA & Cloudflare Pages** | Included `manifest.json`, cache-versioned `sw.js` (`spodeian-web-utils`), `_headers` | Minimal service worker | None |
-| **Accessibility & Recovery** | Dark / Light / High-Contrast themes (`spodeian-tokens`), dyslexia-friendly mode, recoverable error/panic boundary | Default egui style | Default egui style |
+| **Accessibility & Recovery** | Dark / Light / High-Contrast themes (`spodeian-tokens`), dyslexia-friendly mode, screen readers on the web (`egui-web-accesskit`), recoverable error/panic boundary | Default egui style | Default egui style |
 | **Testing & Scaffolding** | 34 host unit/integration/`proptest` suites + Criterion benches + runnable examples + `cargo-generate.toml` + `wasm32` browser tests | Minimal starter tests | None |
 
 ---

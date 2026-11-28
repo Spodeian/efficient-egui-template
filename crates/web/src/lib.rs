@@ -44,6 +44,11 @@ pub fn main() {
                 canvas,
                 web_options,
                 Box::new(move |cc| {
+                    // Screen readers cannot see inside a canvas: mirror egui's AccessKit tree
+                    // into an HTML/ARIA overlay so they can read and operate the widgets.
+                    #[cfg(feature = "accesskit")]
+                    cc.egui_ctx
+                        .add_plugin(egui_web_accesskit::WebAccessKitPlugin::new("egui_canvas"));
                     let mut template_app = TemplateApp::new(cc);
                     if let Some(ref hash) = initial_hash
                         && hash.contains("state=")

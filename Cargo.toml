@@ -15,6 +15,9 @@ repository = "https://github.com/Spodeian/{{project-name}}"
 [workspace.dependencies]
 eframe = { version = "0.36", default-features = false, features = ["default_fonts"] }
 egui = { version = "0.36", default-features = false, features = ["default_fonts"] }
+# Mirrors egui's AccessKit tree into an HTML/ARIA overlay on the web canvas; its tag tracks
+# egui's minor version (v0.36.x for egui 0.36), so bump the two together.
+egui-web-accesskit = { git = "https://github.com/Spodeian/egui-web-accesskit", tag = "v0.36.4" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0"
 tracing = "0.1"

@@ -1153,6 +1153,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui-web-accesskit"
+version = "0.36.4"
+source = "git+https://github.com/Spodeian/egui-web-accesskit?tag=v0.36.4#7d1338507c1f25ff5d249730cb6e0c35c0c4ac24"
+dependencies = [
+ "accesskit_consumer 0.38.0",
+ "egui",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "egui-wgpu"
 version = "0.36.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4180,6 +4191,7 @@ dependencies = [
  "app",
  "console_error_panic_hook",
  "eframe",
+ "egui-web-accesskit",
  "spodeian-telemetry",
  "tracing",
  "tracing-subscriber",

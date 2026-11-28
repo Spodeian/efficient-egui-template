@@ -25,7 +25,7 @@ graph TD
 | `crates/shared` | `std` | Pure Rust domain entities (`Item`, `ItemCollection`, `AppState`, `AccessibilityPreferences`), `ParametricPreviewConfig`, `spodeian-parallel` sweeps, bundled `PARAMETRIC_HARMONIC_WGSL_SHADER`, and JSON/CSV/BSON/SVG/HTML/`#state=` interchange. |
 | `crates/app` | `accesskit`, `persistence`, `wgpu` *(or `glow`)* | Immediate-mode UI (`TemplateApp`), `spodeian-ui` shell widgets (`CommandPaletteWidget`, `UndoStack`, `LogConsoleWidget`, `ReactiveFramePacer`), interactive 2D pan/zoom canvas, Zen Mode (`F11`), and `StorageManager`. |
 | `crates/desktop` | `accesskit`, `persistence`, `wgpu` *(or `glow`)* | Native desktop executable (`winit` viewport min `320x240`, `mimalloc` allocator, `tracing` console/file diagnostics). |
-| `crates/web` | `accesskit`, `persistence`, `wgpu` *(or `glow`)* | WebAssembly entrypoint booting `eframe::WebRunner` on `#egui_canvas`, hydrating `#state=` URL hashes on launch, and registering offline PWA (`sw.js`) & strict CSP `_headers`. |
+| `crates/web` | `accesskit`, `persistence`, `wgpu` *(or `glow`)* | WebAssembly entrypoint booting `eframe::WebRunner` on `#egui_canvas`, mirroring egui's AccessKit tree into an HTML/ARIA overlay for screen readers (`egui-web-accesskit`, behind the `accesskit` feature), hydrating `#state=` URL hashes on launch, and registering offline PWA (`sw.js`) & strict CSP `_headers`. |
 
 ---
 
