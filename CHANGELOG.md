@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- spodeian-core v3.3.0: native content stores now delete superseded data instead of keeping every version on disk.
 - Browser storage: the state was written to IndexedDB on every change but never read back, so a reload restored whatever local storage held. Local storage only got the state when it was under 16 KB, or every 30 seconds through eframe. IndexedDB (`spodeian-cache` `IndexedDbStore`) is now the durable copy. It is read once at startup and written asynchronously, one save at a time, with bursts coalesced and unchanged states skipped. "✓ Saved" shows only after the browser confirms the write. Copies left by earlier versions in local storage and the old IndexedDB database are removed after the first save.
 - Each change no longer writes the whole state two or three times: to local storage, the JS IndexedDB bridge and (on native) a new temp-dir blob that was never read or cleaned up. Native keeps eframe's storage file as its only copy; the unused JS IndexedDB bridge in `index.js` is gone.
 - Service worker: content-hashed bundles are served cache-first with no background re-download on every visit. Other files are network-first with an offline fallback, and cache writes are kept alive with `waitUntil`.
